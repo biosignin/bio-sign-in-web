@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd                 http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd                 http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.1.xsd">
+
+
+	<!-- <import resource="env-local.xml" /> -->
+
+
+
+	<context:component-scan base-package="eu.inn.wssign" />
+
+	<mvc:annotation-driven />
+
+	<bean id="dataLayer" name="dataLayer"
+		class="eu.inn.sign.datalayer.impl.LocalFSDataLayer">
+		<constructor-arg type="java.lang.String" value="${tempDir}" />
+		<constructor-arg type="boolean" value="true" />
+		<constructor-arg type="boolean" value="true" />
+	</bean>
+
+	<bean id="signerFactory" name="signerFactory" class="eu.inn.wssign.InnoSignerFactory">
+		<property name="dataLayer" ref="dataLayer" />
+		<property name="storePath"  value="${fea.p12_location}" />
+		<property name="storeType" value="${fea.p12_type:pkcs12}" />
+		<property name="storePwd" value="${fea.p12_password}" />
+		<property name="alias" value="${fea.p12_alias:}" />
+		<property name="aliasPwd" value="${fea.p12_alias_pwd:}" />
+	</bean>
+
+	<mvc:resources mapping="/Script/**" location="resources/Script/" />
+	<mvc:resources mapping="/js/**" location="resources/Script/" />
+	<mvc:resources mapping="/Images/**" location="resources/Images/" />
+	<mvc:resources mapping="/Style/**" location="resources/Style/" />
+	<mvc:resources mapping="/Applet/**" location="resources/Applet/" />
+
+	<!-- Used for our file-uploading to allow spring to handle multipart form 
+		submission -->
+	<bean id="multipartResolver"
+		class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<property name="maxInMemorySize" value="104857600" />
+		<property name="maxUploadSize" value="209715200" />
+	</bean>
+
+	<bean id="viewResolver"
+		class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
+		<property name="mediaTypes">
+			<map>
+				<entry key="html" value="text/html" />
+				<entry key="pdf" value="application/pdf" />
+				<entry key="xml" value="application/xml" />
+			</map>
+		</property>
+		<property name="viewResolvers">
+			<list>
+				<bean class="org.springframework.web.servlet.view.BeanNameViewResolver">
+					<property name="order" value="0" />
+				</bean>
+				<bean
+					class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+					<property name="prefix" value="/WEB-INF/jsp/" />
+					<property name="suffix" value=".jsp" />
+				</bean>
+			</list>
+		</property>
+	</bean>
+	<bean
+		class="org.springframework.web.context.support.ServletContextPropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+				<value>file:///${ext_prop_wssign_path}/ieessManagement.properties</value>
+			</list>
+		</property>
+	</bean>
+	<bean id="messageSource"
+		class="org.springframework.context.support.ReloadableResourceBundleMessageSource">
+		<property name="basenames">
+			<list>
+				<value>file:///${ext_prop_wssign_path}/messages</value>
+				<value>file:///${ext_prop_wssign_path}/ieessManagement</value>
+			</list>
+		</property>
+		<property name="cacheSeconds" value="15" />
+	</bean>
+
+	<mvc:interceptors>
+		<bean id="localeChangeInterceptor"
+			class="org.springframework.web.servlet.i18n.LocaleChangeInterceptor">
+			<property name="paramName" value="lang" />
+		</bean>
+	</mvc:interceptors>
+
+	<bean id="localeResolver"
+		class="org.springframework.web.servlet.i18n.SessionLocaleResolver">
+		<property name="defaultLocale" value="it" />
+	</bean>
+
+</beans>

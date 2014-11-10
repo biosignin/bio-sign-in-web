@@ -1,0 +1,182 @@
+body{
+	
+/* 	background:#F7F7F7 url('../Images/trama.png');background-repeat:repeat-both */
+}
+.btn {
+	border: 0px solid;
+	border-radius: 15px;
+	width:200px;
+	height:190px;	
+	display: inline-block;
+	padding:10px;
+	margin: 5px;
+	-webkit-transition: height 0.5s; /* For Safari 3.1 to 6.0 */
+    transition: height 0.5s;
+	overflow:hidden;
+	vertical-align:top;
+	box-shadow: 3px 3px 5px #888888;
+	font-family: "Arial Narrow", Arial, serif;
+	font-size:18px;
+	font-weight: bold;	
+}
+
+.btn:hover {
+	height:275px;
+	cursor:pointer;
+}
+
+
+#btnSign {	
+	background:#F2F2F2;	
+	cursor:default;	
+}
+
+#btnSign:hover {
+/* 	height:450px; */
+	height:275px;
+
+	opacity: 1;
+}
+
+#btnVerify {
+	background:#D9D9D9;
+	cursor:default;
+}
+
+#btnVerify:hover {
+	opacity: 1;
+}
+
+#btnSettings {
+	background:#BABABA;
+	cursor:default;
+}
+
+#btnSettings:hover {
+	opacity: 1;
+}
+
+#btnEncrypt {
+	background:#BFBFBF;
+}
+
+#btnEncrypt:hover {
+	opacity: 1;
+}
+
+#btnDecrypt {
+	background:#A6A6A6;
+}
+
+#btnDecrypt:hover {
+	opacity: 1;
+}
+
+.btnOperation {
+	border: 0px solid;
+	border-radius: 5px;
+	width:150px;
+	height:25px;		
+	display: inline-block;
+	padding:10px;
+	margin: 5px;	
+	overflow:hidden;
+	vertical-align:top;
+	box-shadow: 3px 3px 5px #888888;
+	font-family: "Times New Roman", Times, serif;
+	font-size:18px;
+	font-weight: bold;
+	
+	opacity: 0.5;
+   	transition: opacity .25s ease-in-out;
+   	-moz-transition: opacity .25s ease-in-out;
+   	-webkit-transition: opacity .25s ease-in-out;
+}
+
+.btnSign {
+	background:#A6A6A6;
+}
+
+.btnVerify{
+	background:#A6A6A6;
+}
+
+.btnEncrypt{
+	background:#A6A6A6;
+}
+
+.btnDecrypt{
+	background:#A6A6A6;
+}
+
+.btnOperation:hover {	
+	cursor:pointer;
+	opacity: 1;
+}
+
+.btnContainer {
+	text-align: center;
+	padding-top:30px;
+}
+
+.header{
+	text-align: left;
+	height:80px;
+	border: 0px solid;
+	border-radius: 5px;
+	background:#D9D9D9;	
+}
+
+.logo {
+	padding-top:5px;
+	text-align: center;
+}
+.logo>img{	
+	padding-top:0px; 
+}
+
+.btnSettings {	    
+    border: 0px solid;
+	border-radius: 15px;
+	width:200px;
+	height:40px;	
+	display: inline-block;
+	padding-top:22px;
+	padding-left: 20px;
+	margin: 0px;
+	-webkit-transition: height 0.5s; /* For Safari 3.1 to 6.0 */
+    transition: height 0.5s;
+	overflow:hidden;
+	vertical-align:top;
+	font-family: "Arial Narrow", Arial, serif;
+	font-size:18px;
+	font-weight: bold;
+	background:#D9D9D9;		   	
+}
+
+.btnSettings>img {
+	width:30px;
+}
+
+
+
+.btnSettings:hover {	
+	height:270px;	
+}
+
+.btn>img{
+	padding-top:45px;
+}
+
+.btnHover:hover {
+	cursor: pointer;	
+}
+
+#btnLogin{
+	
+}
+
+#btnSettings{
+}
+
+

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<decorators>
+    <decorator name="bsi" page="/WEB-INF/decorators/bsi.jsp">
+        <pattern>/signManagement/home</pattern>
+        <pattern>/signManagement/remoteSign</pattern>
+    </decorator>
+<!--     <decorator name="postel" page="/WEB-INF/decorators/postel.jsp"> -->
+<!--         <pattern>/signManagement/*</pattern> -->
+<!--     </decorator> -->
+</decorators>
