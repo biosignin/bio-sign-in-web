@@ -2,8 +2,8 @@ bio-sign-in-web
 ===============
 # Before Installation 
 - Download and install [Tomcat][tomcat] 7.x
-- Download the external properties file ```bsi_props.zip``` from [here]
-- Download and compile this project with maven ```mvn clean package```
+- Download the external properties file ```bsi_props.zip```  [here]
+- Download and compile this project with maven ```mvn clean package``` or download ```bio-sign-in.war```  [here]
 
 # Installation
 - Unzip the file ```bsi_props.zip``` to ```/etc/bsi/bsi_props```
