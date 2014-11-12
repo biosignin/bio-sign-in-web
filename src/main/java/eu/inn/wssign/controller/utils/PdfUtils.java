@@ -24,12 +24,10 @@ public class PdfUtils {
 		if (field instanceof ParsedSignatureField) {
 			ParsedSignatureField pField = (ParsedSignatureField) field;
 			ret.put("isNew", !pField.isCreated());
-
 			ret.put("mandatory", pField.isMandatory());
 			ret.put("displayName", pField.getName());
 			ret.put("description", "desc N/A");
 			ret.put("dsig", pField.getText());
-
 		} else
 			ret.put("isNew", false);
 

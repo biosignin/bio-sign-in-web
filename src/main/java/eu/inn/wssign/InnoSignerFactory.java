@@ -36,47 +36,32 @@ public class InnoSignerFactory {
 			ks.load(new FileInputStream(storePath), storePwd.toCharArray());
 			store = ks;
 			if (StringUtils.isBlank(alias))
-				alias=ks.aliases().nextElement();
+				alias = ks.aliases().nextElement();
 			if (StringUtils.isBlank(aliasPwd))
-				aliasPwd=storePwd;
+				aliasPwd = storePwd;
 		}
 		return store;
-
 	}
 
 	private Cache<UUID, InnoBaseSign<UUID>> cacheSigner = CacheBuilder.newBuilder().concurrencyLevel(4)
 			.expireAfterWrite(30, TimeUnit.MINUTES).build();
-//			new CacheLoader<UUID, InnoBaseSign<UUID>>() {
-//
-//				@Override
-//				public InnoBaseSign<UUID> load(UUID key) throws Exception {
-//
-//					PdfBoxPdfDocumentType myDocumentType = new PdfBoxPdfDocumentType();
-//					myDocumentType.setPdfRender(new IcePdfRenderer());
-//					LocalPdfSignatureManager sigManager = new LocalPdfSignatureManager(getStore(), aliasPwd, alias);
-//					return new InnoBaseSign<UUID>(dataLayer, sigManager, myDocumentType);
-//
-//				}
-//
-//			});
 
 	public InnoBaseSign<UUID> getSigner(UUID uuid) throws ExecutionException {
 		return cacheSigner.getIfPresent(uuid);
 	}
-	
+
 	public InnoBaseSign<UUID> getSigner(String uuid) throws ExecutionException {
 		return getSigner(UUID.fromString(uuid));
 	}
-	
+
 	public InnoBaseSign<UUID> createSigner() throws Exception {
-		
 		PdfBoxPdfDocumentType myDocumentType = new PdfBoxPdfDocumentType();
 		myDocumentType.setPdfRender(new IcePdfRenderer());
 		LocalPdfSignatureManager sigManager = new LocalPdfSignatureManager(getStore(), aliasPwd, alias);
 		InnoBaseSign<UUID> ret = new InnoBaseSign<UUID>(dataLayer, sigManager, myDocumentType);
-		
 		return ret;
-	}	
+	}
+
 	public void putSigner(InnoBaseSign<UUID> toAdd) throws ExecutionException {
 		cacheSigner.put(toAdd.getUuid(), toAdd);
 	}

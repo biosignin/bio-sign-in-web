@@ -4,7 +4,7 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.Priority;
 
 public class AuditLogger {
-	
+
 	private static Logger logger = Logger.getLogger("AUDIT");
 
 	public static void LOG(Priority priority, Object message) {

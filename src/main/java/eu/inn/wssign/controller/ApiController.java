@@ -24,7 +24,6 @@ import org.json.simple.parser.JSONParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -44,15 +43,12 @@ import eu.inn.wssign.InnoSignerFactory;
 import eu.inn.wssign.controller.utils.AuditLogger;
 
 /**
- * Handles requests for the application home page.
+ * Handles requests for the signature web api.
  */
 @Controller
 @RequestMapping("/api")
 @SuppressWarnings("unchecked")
 public class ApiController {
-
-	// @Autowired
-	// private IDataLayer<UUID> dataLayer;
 
 	@Autowired
 	private InnoSignerFactory signerFactory;
@@ -76,9 +72,6 @@ public class ApiController {
 
 	}
 
-	// @Resource
-	// WebServiceTemplate localwsNoAuth;
-
 	private static final Logger logger = Logger.getLogger(ApiController.class);
 
 	public ApiController() throws IOException {
@@ -87,11 +80,7 @@ public class ApiController {
 
 	@RequestMapping(value = "/signFEA", method = RequestMethod.POST)
 	public @ResponseBody String signFEA(@RequestParam String uuid, @RequestParam String sigName,
-			@RequestParam String xmlBioSignature, @RequestParam String base64image
-//			,
-//			@RequestParam(defaultValue = "PAdES-BES") String type, @RequestParam(defaultValue = "0") String docType,
-//			@RequestParam(defaultValue = "DETACHED") String packaging
-			) {
+			@RequestParam String xmlBioSignature, @RequestParam String base64image) {
 		JSONObject ret = new JSONObject();
 
 		try {
@@ -100,54 +89,7 @@ public class ApiController {
 			sp.setSignImageBase64(base64image);
 			sp.setName(sigName);
 			signerFactory.getSigner(uuid).sign(sp, null);
-//			
-//			Date from = new Date();
-//			FileObject last = dataLayer.getLastFile(UUID.fromString(uuid));
-//			Image image = null;
-//			if (StringUtils.isNotBlank(base64image)) {
-//				Base64Encoder encoder = new Base64Encoder();
-//				ByteArrayOutputStream baos = new ByteArrayOutputStream();
-//				encoder.decode(base64image, baos);
-//				baos.flush();
-//				byte[] bytesImage = baos.toByteArray();
-//				baos.close();
-//				image = new Image();
-//				image.setImgb(bytesImage);
-//				image.setAbsoluteX(50);
-//				image.setAbsoluteY(50);
-//			}
-//
-//			byte[] data = last.getData();
-//
-//			String feaUsername = "";// messageSource.getMessage("fea.username",
-//									// null, null);
-//
-//			String feaPassword = "";// messageSource.getMessage("fea.pin", null,
-//									// null);
-//
-//			SignRequest sr = new SignRequest().withPIN(feaPassword).withSignatureType(type).withSignDocument(data)
-//					.withUserName(feaUsername).withSignName(sigName).withImage(image).withBiosignature(xmlBioSignature)
-//					.withSignPackaging(packaging).withUseP12(true);
-//
-//			SignResponse res = (SignResponse) localwsNoAuth.marshalSendAndReceive(sr);
-//
-//			if (StringUtils.isNotBlank(res.getErrors()))
-//				throw new Exception(res.getErrors());
-//
-//			String fileName = last.getName();
-//
-//			// originalFileName = originalFileName.replace(stepId, "");
-//			if (docType.equals("2"))
-//				fileName += ".p7m";
-//			FileObject toAdd = new FileObject(res.getSignedDocument(), fileName);
-//			UUID newUUID = dataLayer.addFile(UUID.fromString(uuid), toAdd);
-
 			ret.put("uuid", uuid.toString());
-//			ret.put("uuidStep", newUUID.toString());
-//			Date to = new Date();
-//			long diff = to.getTime() - from.getTime();
-//			logger.info("Document signed uuid: " + uuid + " time: " + diff + " milliseconds");
-
 		} catch (Exception e) {
 			logger.error("Internal Server Error - " + e.getMessage(), e);
 			ret.put("errorMessage", "Cannot sign document. " + e.getMessage());
@@ -172,12 +114,8 @@ public class ApiController {
 
 	@RequestMapping(value = "/signLocalStep1", method = RequestMethod.POST)
 	public @ResponseBody String signLocalStep1(@RequestParam String uuid, @RequestParam String base64Cert,
-			@RequestParam String sigName, 
-//			@RequestParam(defaultValue = "PAdES-BES") String type,
-//			@RequestParam(defaultValue = "DETACHED") String packaging,
-			@RequestParam(defaultValue = "") String xmlBioSignature,
-			@RequestParam(defaultValue = "") String base64image
-			) {
+			@RequestParam String sigName, @RequestParam(defaultValue = "") String xmlBioSignature,
+			@RequestParam(defaultValue = "") String base64image) {
 		JSONObject ret = new JSONObject();
 		try {
 			SignatureParameters sp = new SignatureParameters();
@@ -186,13 +124,13 @@ public class ApiController {
 			sp.setName(sigName);
 			CertificateFactory cf = CertificateFactory.getInstance("X509");
 			ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(base64Cert));
-			X509Certificate cert = (X509Certificate) cf
-					.generateCertificate(bais);
+			X509Certificate cert = (X509Certificate) cf.generateCertificate(bais);
 			try {
 				bais.close();
-			}catch (Exception ex) {}
+			} catch (Exception ex) {
+			}
 			byte[] toBeSigned = signerFactory.getSigner(uuid).getToBeSignedData(sp, cert);
-			ret.put("signData", Base64.encodeBase64String(toBeSigned));			
+			ret.put("signData", Base64.encodeBase64String(toBeSigned));
 		} catch (Exception e) {
 			ret.put("errorMessage", e.getMessage());
 		}
@@ -200,42 +138,11 @@ public class ApiController {
 	}
 
 	@RequestMapping(value = "/signLocalStep2", method = RequestMethod.POST)
-	public @ResponseBody String signLocalStep2(@RequestParam String uuid,
-//			@RequestParam(defaultValue = "0") String docType, 
-//			@RequestParam String sigName,
-			@RequestParam String base64Digest) {
+	public @ResponseBody String signLocalStep2(@RequestParam String uuid, @RequestParam String base64Digest) {
 		JSONObject ret = new JSONObject();
 		try {
 			signerFactory.getSigner(uuid).sign(null, Base64.decodeBase64(base64Digest));
-			// String last = cacheDocs.getIfPresent(UUID.fromString(uuid)).getLast().toString();
-//			FileObject last = dataLayer.getLastFile(UUID.fromString(uuid));
-//			Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-//			ApplicationAuth appAuth = new ApplicationAuth();
-//			appAuth.withApplicationName("IESS").withApplicationPassword("iess_innovery")
-//					.withOragnization("organization").withGroupName("user");
-//			if (auth != null) {
-//				UserDetailBean user = (UserDetailBean) auth.getPrincipal();
-//				appAuth.withOragnization(user.getOrganization()).withGroupName(user.getGroup())
-//						.withApplicationName("IESS").withApplicationPassword("iess_innovery");
-//			}
-//			SignV2Request srv2 = new SignV2Request().withSignedDigest(Base64.decode(base64Digest))
-//					.withIsLocalSign(true).withUuid(uuid).withSignName(sigName).withAuth(appAuth);
-//
-//			SignV2Response resv2 = (SignV2Response) localwsNoAuth.marshalSendAndReceive(srv2);
-//
-//			String fileName = last.getName();
-//
-//			// originalFileName = originalFileName.replace(stepId, "");
-//			if (docType.equals("2"))
-//				fileName += ".p7m";
-//			FileObject toAdd = new FileObject(resv2.getSignedDocument(), fileName);
-//			UUID newUUID = dataLayer.addFile(UUID.fromString(uuid), toAdd);
-
 			ret.put("uuid", uuid.toString());
-//			if (docType.equals("1"))
-//				ret.put("xmlDocument", new String(resv2.getSignedDocument()));
-//
-//			ret.put("uuidStep", newUUID.toString());
 		} catch (Exception e) {
 			ret.put("errorMessage", e.getMessage());
 		}
@@ -244,15 +151,11 @@ public class ApiController {
 	}
 
 	@RequestMapping(value = "/upload", method = RequestMethod.POST)
-	// @PreAuthorize("hasRole('"+FunctionEnum.PERMISSION_AUTOENROLL_BIO_SIGNATURE+"')")
 	public @ResponseBody void upload(HttpServletRequest request, HttpServletResponse response) {
 		JSONObject ret = new JSONObject();
-
 		try {
-
 			MultipartHttpServletRequest multipartRequest = (MultipartHttpServletRequest) request;
 			MultipartFile fileToSignFile = multipartRequest.getFile(multipartRequest.getFileNames().next());
-
 			FileObject toStore = new FileObject(fileToSignFile.getBytes(), fileToSignFile.getOriginalFilename());
 			InnoBaseSign<UUID> created = signerFactory.createSigner();
 			created.importDocument(toStore);
@@ -260,37 +163,16 @@ public class ApiController {
 			signerFactory.putSigner(created);
 			logger.info("Upload Document uuid: " + generated.toString());
 			ret.put("uuid", generated.toString());
-
 		} catch (Exception e) {
 			logger.error("Internal Server Error - " + e.getMessage(), e);
 			ret.put("errorMessage", "Cannot upload document. " + e.getMessage());
 		}
-
 		try {
 			response.getOutputStream().print(ret.toJSONString());
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		// turn ret.toJSONString();
-
 	}
-
-	// private static JSONObject signatureToObject(PdfReader reader, String fieldName, boolean signed) {
-	// JSONObject ret = new JSONObject();
-	//
-	// ret.put("name", fieldName);
-	// ret.put("signed", signed);
-	// float[] positions = reader.getAcroFields().getFieldPositions(fieldName);
-	// com.lowagie.text.Rectangle pageSize = reader.getPageSize((int) positions[0]);
-	// ret.put("page", (int) positions[0]);
-	// ret.put("left", positions[1]);
-	// ret.put("top", pageSize.getHeight() - positions[4]);
-	// ret.put("width", positions[3] - positions[1]);
-	// ret.put("height", positions[4] - positions[2]);
-	//
-	// return ret;
-	// }
 
 	private static JSONObject signatureToObject(SignatureField s) {
 		JSONObject ret = new JSONObject();
@@ -322,7 +204,6 @@ public class ApiController {
 		return ret.toJSONString().getBytes();
 	}
 
-
 	@RequestMapping(value = "/getPageInfo")
 	public @ResponseBody byte[] getPdfInfo(@RequestParam String uuid, @RequestParam int page) {
 		JSONObject ret = new JSONObject();
@@ -344,7 +225,8 @@ public class ApiController {
 
 		JSONObject ret = new JSONObject();
 		try {
-			Collection<SignatureField> sigs = signerFactory.getSigner(uuid).getSignFields(!skipTextAnalysis, prefix, suffix).values();
+			Collection<SignatureField> sigs = signerFactory.getSigner(uuid)
+					.getSignFields(!skipTextAnalysis, prefix, suffix).values();
 			JSONArray signs = new JSONArray();
 			ret.put("signatures", signs);
 			for (SignatureField s : sigs)
@@ -359,11 +241,11 @@ public class ApiController {
 	}
 
 	@RequestMapping(value = "/addSignatureFields", method = RequestMethod.POST)
-	public @ResponseBody byte[] addSignatureFields(final @RequestParam String uuid, String signatures, @RequestParam(defaultValue="true") boolean throwsOnError) {
+	public @ResponseBody byte[] addSignatureFields(final @RequestParam String uuid, String signatures,
+			@RequestParam(defaultValue = "true") boolean throwsOnError) {
 		JSONObject ret = new JSONObject();
 		try {
 			List<SignatureField> fieldToAdd = new ArrayList<SignatureField>();
-
 			JSONParser parser = new JSONParser();
 			JSONObject config = (JSONObject) parser.parse(signatures);
 			JSONArray array = (JSONArray) config.get("signatures");
@@ -387,7 +269,6 @@ public class ApiController {
 		} catch (Exception ex) {
 			logger.error("Internal Server Error - " + ex.getMessage(), ex);
 			ret.put("errorMessage", "Cannot prepare document. " + ex.getMessage());
-
 		}
 		return ret.toJSONString().getBytes();
 	}
@@ -395,7 +276,6 @@ public class ApiController {
 	@RequestMapping(value = "/download", method = RequestMethod.GET)
 	public @ResponseBody byte[] download(final @RequestParam String uuid, HttpServletResponse response,
 			HttpServletRequest request) {
-
 		try {
 			FileObject f = signerFactory.getSigner(uuid).getFileObject();
 			if (f == null)
@@ -404,20 +284,16 @@ public class ApiController {
 					Level.INFO,
 					String.format("Downloading file with uuid %s from remote address %s:%s with user %s", uuid,
 							request.getRemoteAddr(), request.getRemotePort(), request.getRemoteUser()));
-			// byte[] data = FileUtils.readFileToByteArray(f);
 			response.setHeader("Content-Disposition", "attachment; filename=\"" + f.getName() + "\"");
 			response.setContentLength(f.getData().length);
-
 			response.setContentType("application/octet-stream");
 			response.getOutputStream().write(f.getData());
 			response.getOutputStream().flush();
-
 			return null;
 		} catch (Exception e) {
 			logger.error("Internal Server Error - " + e.getMessage());
 			throw new ResourceNotFoundException();
 		}
-
 	}
 
 	@RequestMapping(value = "/exists", method = RequestMethod.GET)
@@ -425,8 +301,6 @@ public class ApiController {
 
 		JSONObject ret = new JSONObject();
 		try {
-
-			UUID masterUuid = UUID.fromString(uuid);
 			FileObject fo = signerFactory.getSigner(uuid).getFileObject();
 			ret.put("exists", fo != null);
 			ret.put("name", fo != null ? fo.getName() : "");
@@ -436,7 +310,6 @@ public class ApiController {
 			ret.put("exists", false);
 			ret.put("name", "");
 			ret.put("uuid", uuid);
-
 		}
 		return ret.toJSONString().getBytes();
 	}
@@ -444,7 +317,6 @@ public class ApiController {
 	@RequestMapping(value = "/getFileBytes", method = RequestMethod.GET)
 	public @ResponseBody void getFileBytes(final @RequestParam String uuid, HttpServletResponse response)
 			throws IOException {
-
 		try {
 			byte[] data = signerFactory.getSigner(uuid).getFileObject().getData();
 			response.setContentType("application/pdf");
@@ -461,6 +333,6 @@ public class ApiController {
 	@ResponseStatus(value = HttpStatus.NOT_FOUND)
 	public class ResourceNotFoundException extends RuntimeException {
 
-	}	
+	}
 
 }

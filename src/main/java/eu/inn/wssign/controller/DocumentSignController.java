@@ -95,16 +95,13 @@ public class DocumentSignController {
 
 	@RequestMapping(value = "/getBindingInfo", method = RequestMethod.POST)
 	public @ResponseBody byte[] getBindingInfo(@RequestParam String uuid) {
-
 		JSONObject ret = new JSONObject();
 		try {
 			PdfBinding bind = signerFactory.getSigner(uuid).getBindingInfo();// .getLastFile(UUID.fromString(uuid)).getData();
-
 			ret.put("hash", bind.getHash());
 			ret.put("count", bind.getCount());
 			ret.put("offset", bind.getOffset());
 			ret.put("alg", bind.getAlgorithm());
-
 		} catch (Exception e) {
 			logger.error("Internal Server Error - " + e.getMessage(), e);
 			ret.put("errorMessage", "Cannot get binding. " + e.getMessage());
@@ -113,55 +110,35 @@ public class DocumentSignController {
 
 	}
 
-	// @Resource
-	// WebServiceTemplate localwsNoAuth;
-
 	private static final Logger logger = Logger.getLogger(DocumentSignController.class);
 
-	// private static final String tempDirSigned = "C:\\tempPDFEditorSigned";
-
 	public DocumentSignController() throws IOException {
-
 	}
 
 	@RequestMapping(value = "/signFEA", method = RequestMethod.POST)
 	public @ResponseBody String signFEA(@RequestParam String uuid, @RequestParam String sigName,
 			@RequestParam String config, String xmlBioSignature, String base64image,
-			@RequestParam(defaultValue = "PAdES-BES") String type,// tipo di
-																	// firma
-																	// cades,pades,xades
-			@RequestParam(defaultValue = "0") String docType,// tipo di
-																// documento
+			@RequestParam(defaultValue = "PAdES-BES") String type, @RequestParam(defaultValue = "0") String docType,
 			@RequestParam(defaultValue = "DETACHED") String packaging) {
 		JSONObject ret = new JSONObject();
-		// uuid : viewModel.selectedUUID(),
-		// config: ko.toJSON(viewModel, null, 2),
-		// userName: $( "#dialog-form" ).find( "input[name='userName']" ).val(),
-		// otp: $( "#dialog-form" ).find( "input[name='otp']" ).val(),
-		// pin: $( "#dialog-form" ).find( "input[name='pin']" ).val(),
-		// userName: $( "#dialog-form" ).find( "input[name='userName']" ).val(),
 		try {
 			logger.debug("Called signFEA ");
 			Date from = new Date();
 			logger.info("Document to sign uuid: " + uuid);
-
 			if (docType.equals("0"))
-				preparePdf(uuid, config); // change preparePdf so that accept byte[] instead of file
+				preparePdf(uuid, config);
 			else
 				throw new IllegalArgumentException("Only pdf are allowed");
-
 			SignatureParameters sp = new SignatureParameters();
 			sp.setBioData(xmlBioSignature);
 			sp.setSignImageBase64(base64image);
 			sp.setName(sigName);
 			signerFactory.getSigner(uuid).sign(sp, null);
-
 			ret.put("uuid", uuid);
 			ret.put("uuidStep", uuid);
 			Date to = new Date();
 			long diff = to.getTime() - from.getTime();
 			logger.info("Document signed uuid: " + uuid + " time: " + diff + " milliseconds");
-
 		} catch (Exception e) {
 			logger.error("Internal Server Error - " + e.getMessage(), e);
 			ret.put("errorMessage", "Cannot sign document. " + e.getMessage());
@@ -178,40 +155,29 @@ public class DocumentSignController {
 			final JSONObject pageImage = new JSONObject();
 			InnoBaseSign<UUID> s = signerFactory.getSigner(uuid);
 			s.getPageImage(page, 2, new IPdfRenderedListener() {
-
 				@Override
 				public void onRendered(int page, double scale, byte[] image) {
-					// TODO Auto-generated method stub
 					pageImage.put("imageb64", Base64.encodeBase64String(image));
-
 				}
 			});
-
 			pageImage.put("width", s.getPageInfo(page).getWidth());
 			pageImage.put("height", s.getPageInfo(page).getHeight());
-
 			return pageImage.toJSONString();
 		} catch (Exception e) {
 			logger.error("Internal Server Error - " + e.getMessage());
 			e.printStackTrace();
 			throw new ResourceNotFoundException();
 		}
-
 	}
 
 	@RequestMapping(value = "/undoLastSign", method = RequestMethod.GET)
 	public @ResponseBody String undoLastSign(@RequestParam String uuid) {
 		JSONObject ret = new JSONObject();
-
 		try {
 			logger.debug("Called undoLastSign ");
 			logger.info("Document to sign uuid: " + uuid);
 			signerFactory.getSigner(uuid).undo(true);
-			// dataLayer.removeLastFile(UUID.fromString(uuid));
-			// if (cacheDocs.getIfPresent(UUID.fromString(uuid)).size() > 1)
-			// cacheDocs.getIfPresent(UUID.fromString(uuid)).removeLast();
 			ret.put("uuid", uuid);
-
 		} catch (Exception e) {
 			logger.error("Internal Server Error - " + e.getMessage(), e);
 			ret.put("errorMessage", "Cannot undo Last Sign. " + e.getMessage());
@@ -227,19 +193,13 @@ public class DocumentSignController {
 			@RequestParam String sigName, @RequestParam(defaultValue = "") String sigImageUuid) {
 		JSONObject ret = new JSONObject();
 		try {
-
 			if (!docType.equals("0"))
 				throw new IllegalArgumentException("Only pdf are allowed");
 			preparePdf(uuid, config);
-
 			SignatureParameters sp = new SignatureParameters();
-
-			// sp.setBioData(xmlBioSignature);
-			// sp.setSignImageBase64(base64image);
 			sp.setName(sigName);
 			CertificateFactory cf = CertificateFactory.getInstance("X509");
-			ByteArrayInputStream bais = new ByteArrayInputStream(
-					Base64.decodeBase64(base64Cert));
+			ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(base64Cert));
 			X509Certificate cert = (X509Certificate) cf.generateCertificate(bais);
 			try {
 				bais.close();
@@ -269,14 +229,11 @@ public class DocumentSignController {
 	}
 
 	@RequestMapping(value = "/upload", method = RequestMethod.POST)
-	// @PreAuthorize("hasRole('"+FunctionEnum.PERMISSION_AUTOENROLL_BIO_SIGNATURE+"')")
 	public @ResponseBody void upload(HttpServletRequest request, HttpServletResponse response) {
 		JSONObject ret = new JSONObject();
 		try {
-
 			MultipartHttpServletRequest multipartRequest = (MultipartHttpServletRequest) request;
 			MultipartFile fileToSignFile = multipartRequest.getFile(multipartRequest.getFileNames().next());
-
 			FileObject toStore = new FileObject(fileToSignFile.getBytes(), fileToSignFile.getOriginalFilename());
 			InnoBaseSign<UUID> created = signerFactory.createSigner();
 			created.importDocument(toStore);
@@ -287,85 +244,34 @@ public class DocumentSignController {
 			}
 			logger.info("Upload Document uuid: " + generated.toString());
 			ret.put("uuid", generated.toString());
-
 		} catch (Exception e) {
 			logger.error("Internal Server Error - " + e.getMessage(), e);
 			ret.put("errorMessage", "Cannot upload document. " + e.getMessage());
 		}
-
 		try {
 			response.getOutputStream().print(ret.toJSONString());
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
-	// @RequestMapping(value = "/getCertificates", method = RequestMethod.GET)
-	// public @ResponseBody String getCertificates(@RequestParam(defaultValue = "") String username) {
-	// JSONObject ret = new JSONObject();
-	//
-	// try {
-	// Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-	// if (auth != null && StringUtils.isBlank(username))
-	// username = auth.getName();
-	// else if (auth == null)
-	// throw new BadCredentialsException("Probabilly session expired");
-	// GetAvailableCertificatesRequest sr = new GetAvailableCertificatesRequest();
-	// sr.setUser(username);
-	// GetAvailableCertificatesResponse res = (GetAvailableCertificatesResponse) localwsNoAuth
-	// .marshalSendAndReceive(sr);
-	// JSONArray certs = new JSONArray();
-	//
-	// for (CertificateInfo ci : res.getCertificate()) {
-	// JSONObject c = new JSONObject();
-	// c.put("dn", ci.getDn());
-	// c.put("hsmName", ci.getHsmName());
-	// c.put("hsmUri", ci.getWsHsmUri());
-	// c.put("keyAlias", ci.getKeyAlias());
-	// c.put("partitionName", ci.getPartitionName());
-	// c.put("createdOn", ci.getCreatedOn().toString());
-	// certs.add(c);
-	// }
-	// ret.put("certificates", certs);
-	//
-	// } catch (Exception e) {
-	// logger.error("Internal Server Error - " + e.getMessage());
-	// ret.put("errorMessage", "Cannot get certificates - " + e.getMessage());
-	//
-	// }
-	// return ret.toJSONString();
-	//
-	// }
-
 	@RequestMapping(value = "/getPdfInfo", method = RequestMethod.POST)
 	public @ResponseBody byte[] getPdfInfo(@RequestParam String uuid,
 			@RequestParam(defaultValue = "false") boolean skipTextAnalysis) {
-
 		JSONObject ret = new JSONObject();
-
 		try {
 			InnoBaseSign<UUID> signer = signerFactory.getSigner(uuid);
 			LinkedList<UUID> all = baseDataLayer.getAllFiles(UUID.fromString(uuid));
-
-			// byte[] lastData = dataLayer.getLastFile(passedUuid).getData();
-			// reader = new PdfReader(lastData);
-
-			// File file = cachePdfFiles.getIfPresent(UUID.fromString(stepId));
 			ret.put("pagesN", signer.getTotalPages());
 			JSONArray signs = new JSONArray();
 			ret.put("signatures", signs);
 			ret.put("revision", all.size());
-
 			Map<String, SignatureField> signsFound = signer.getSignFields(true, "§dsig", "§");
 			for (SignatureField sf : signsFound.values())
 				signs.add(PdfUtils.signatureToObject(sf, signer.getPageInfo(sf.getPage())));
-
 			PdfPageInfo p1 = signer.getPageInfo(1);
-
 			ret.put("realWidthPage", p1.getWidth());
 			ret.put("realHeightPage", p1.getHeight());
-
 		} catch (Exception e) {
 			logger.error("Internal Server Error - " + e.getMessage(), e);
 			ret.put("errorMessage", "Cannot get number of pages. " + e.getMessage());
@@ -375,11 +281,9 @@ public class DocumentSignController {
 	}
 
 	private void preparePdf(String uuid, String configJson) throws Exception {
-
 		InnoBaseSign<UUID> signer = signerFactory.getSigner(uuid);
 		JSONParser parser = new JSONParser();
 		JSONObject config = (JSONObject) parser.parse(configJson);
-
 		JSONArray array = (JSONArray) config.get("signatureApplied");
 		List<SignatureField> toAdd = new ArrayList<SignatureField>();
 		for (Object signObj : array) {
@@ -389,7 +293,6 @@ public class DocumentSignController {
 			SignatureField sf = new SignatureField();
 			sf.setName(signature.get("name").toString());
 			int page = 1;
-
 			if ((Boolean) signature.get("_isVisible")) {
 				page = Integer.parseInt(signature.get("page").toString());
 				PdfPageInfo info = signer.getPageInfo(page);
@@ -408,7 +311,6 @@ public class DocumentSignController {
 				sf.setPage(page);
 			}
 			toAdd.add(sf);
-
 		}
 		if (toAdd.isEmpty())
 			return;
@@ -419,12 +321,8 @@ public class DocumentSignController {
 	@RequestMapping(value = "/prepareDownload", method = RequestMethod.POST)
 	public @ResponseBody byte[] prepareDownload(final @RequestParam String uuid, String config,
 			HttpServletResponse response) {
-
 		JSONObject ret = new JSONObject();
-
 		try {
-			// String stepId = cacheDocs.getIfPresent(UUID.fromString(uuid)).getLast().toString();
-			// String newUUID = preparePdf(stepId, config).toString();
 			ret.put("uuid", uuid);
 		} catch (Exception ex) {
 			logger.error("Internal Server Error - " + ex.getMessage(), ex);
@@ -437,34 +335,24 @@ public class DocumentSignController {
 	@RequestMapping(value = "/download", method = RequestMethod.GET)
 	public @ResponseBody byte[] download(final @RequestParam String uuid, HttpServletResponse response,
 			HttpServletRequest request) {
-
 		try {
-
 			FileObject last = signerFactory.getSigner(uuid).getFileObject();
-			// String stepId = cacheDocs.getIfPresent(UUID.fromString(uuid))
-			// .getLast().toString();
-			// UUID selectedUuid = UUID.fromString(stepId);
-			// File f = cachePdfFiles.getIfPresent(selectedUuid);
 			if (last == null)
 				throw new Exception("Document " + uuid + " does not exists");
 			AuditLogger.LOG(
 					Level.INFO,
 					String.format("Downloading file with uuid %s from remote address %s:%s with user %s", uuid,
 							request.getRemoteAddr(), request.getRemotePort(), request.getRemoteUser()));
-			// byte[] data = FileUtils.readFileToByteArray(f);
 			response.setHeader("Content-Disposition", "attachment; filename=\"" + last.getName() + "\"");
 			response.setContentLength(last.getData().length);
-
 			response.setContentType("application/octet-stream");
 			response.getOutputStream().write(last.getData());
 			response.getOutputStream().flush();
-
 			return null;
 		} catch (Exception e) {
 			logger.error("Internal Server Error - " + e.getMessage());
 			throw new ResourceNotFoundException();
 		}
-
 	}
 
 	@RequestMapping(value = "/getSigInfo", method = RequestMethod.GET)
@@ -472,10 +360,7 @@ public class DocumentSignController {
 		JSONObject ret = new JSONObject();
 		if (StringUtils.isBlank(uuid) || StringUtils.isBlank(sigName))
 			throw new ResourceNotFoundException();
-
 		try {
-			// ret.put("success", ITextUtils.verifySignatures(
-			// cachePdfFiles.getIfPresent(UUID.fromString(uuid)), sigName));
 		} catch (Exception e) {
 			logger.error("Internal Server Error - " + e.getMessage());
 			ret.put("errorMessage", "Internal Server Error - " + e.getMessage());
@@ -488,21 +373,17 @@ public class DocumentSignController {
 	@RequestMapping(value = "/getFileAsB64", method = RequestMethod.GET)
 	public @ResponseBody String getFileAsB64(final @RequestParam String uuid, HttpServletResponse res)
 			throws IOException {
-
 		try {
-			// first file
 			byte[] data = baseDataLayer.getFirstFile(UUID.fromString(uuid)).getData();
 			return Base64.encodeBase64String(data);
 		} catch (Exception ex) {
 			throw new ResourceNotFoundException();
 		}
-
 	}
 
 	@RequestMapping(value = "/getFileBytes", method = RequestMethod.GET)
 	public @ResponseBody void getFileBytes(final @RequestParam String uuid, HttpServletResponse response)
 			throws IOException {
-
 		try {
 			FileObject fo = signerFactory.getSigner(uuid).getFileObject();
 			byte[] data = fo.getData();
@@ -524,10 +405,6 @@ public class DocumentSignController {
 		model.addAttribute("lang", lang);
 		if (type.equals("1"))
 			try {
-
-				// model.addAttribute("xmlDoc",
-				// StringEscapeUtils.escapeXml(FileUtils.readFileToString(cachePdfFiles.getIfPresent(UUID.fromString(uuid)))));
-				// String xmlDoc = FileUtils.readFileToString(cachePdfFiles.getIfPresent(UUID.fromString(uuid)));
 				String xmlDoc = new String(baseDataLayer.getLastFile(UUID.fromString(uuid)).getData());
 				model.addAttribute("xmlDoc", xmlDoc.replaceAll("\\r\\n", "").replaceAll("\n", ""));
 			} catch (Exception e) {
@@ -549,16 +426,9 @@ public class DocumentSignController {
 		model.addAttribute("enableAddSignature", enableAddSignature);
 		model.addAttribute("nextIndex", Integer.parseInt(nextIndex) + 1);
 		try {
-
 			String xmlDoc = new String(baseDataLayer.getLastFile(UUID.fromString(uuid)).getData());
-
-			// String xmlDoc = FileUtils.readFileToString(cachePdfFiles.getIfPresent(cacheDocs.getIfPresent(
-			// UUID.fromString(uuid)).getLast()));
 			if (xmlDoc.startsWith("<")) {
 				model.addAttribute("documentType", 1);
-				// model.addAttribute("xmlDoc", xmlDoc.replaceAll("\\r\\n", "")
-				// .replaceAll("\n", ""));
-
 				model.addAttribute("enableFlatCopy", false);
 				model.addAttribute("callbackURL", "remoteSignXmlEnd");
 				return "signManagement/remoteSignXml";
@@ -566,7 +436,6 @@ public class DocumentSignController {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-
 		model.addAttribute("enableFlatCopy", enableFlatCopy);
 		model.addAttribute("callbackURL", callbackURL);
 		return "signManagement/remoteSign";
@@ -574,7 +443,6 @@ public class DocumentSignController {
 
 	@RequestMapping(value = "/remoteSignXmlEnd", method = RequestMethod.GET)
 	public String remoteSign(Model model, @RequestParam(defaultValue = "") String uuid) throws Exception {
-		// UUID last = cacheDocs.getIfPresent(UUID.fromString(uuid)).getLast();
 		String xmlDoc = new String(baseDataLayer.getLastFile(UUID.fromString(uuid)).getData());
 		model.addAttribute("uuid", uuid);
 		model.addAttribute("xml", xmlDoc);
@@ -584,7 +452,6 @@ public class DocumentSignController {
 	@RequestMapping(value = "/downloadXml", method = RequestMethod.GET, produces = "application/xml")
 	@ResponseBody
 	public String downloadXml(Model model, @RequestParam(defaultValue = "") String uuid) throws Exception {
-
 		return new String(baseDataLayer.getLastFile(UUID.fromString(uuid)).getData());
 	}
 
@@ -602,13 +469,9 @@ public class DocumentSignController {
 	public String endDocument(@RequestParam(defaultValue = "") String docuuid,
 			@RequestParam(defaultValue = "") String callbackURL,
 			@RequestParam(defaultValue = "true") boolean enableFlatCopy) throws Exception {
-
 		try {
-
 			logger.info("Document Ended uuid: " + docuuid);
-
 		} catch (Exception e) {
-
 			e.printStackTrace();
 		}
 		FileObject f = baseDataLayer.getLastFile(UUID.fromString(docuuid));
@@ -636,12 +499,8 @@ public class DocumentSignController {
 				}
 			}
 			return "redirect:" + callbackURL + "?uuid=" + docuuid;
-		}
-
-		else {
-
+		} else {
 			try {
-
 				File output = new File(outputDir + "/" + docuuid + "_" + f.getName());
 				if (output.exists()) {
 					output.delete();
