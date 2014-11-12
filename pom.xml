@@ -174,14 +174,9 @@
 	</distributionManagement>
 	<repositories>
 		<repository>
-			<id>SignSDK</id>
-			<name>Innovery SignSDK Releases</name>
-			<url>http://developers.innovery.net/artifactory/signsdk-release</url>
-		</repository>
-		<repository>
 			<id>InnoPublic</id>
 			<name>Innovery Public Releases</name>
-			<url>http://developers.innovery.net/artifactory/public-release</url>
+			<url>http://developers.innovery.net/artifactory/public-repo</url>
 		</repository>
 	</repositories>
 </project>
