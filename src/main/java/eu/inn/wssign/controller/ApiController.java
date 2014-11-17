@@ -98,13 +98,14 @@ public class ApiController {
 	}
 
 	@RequestMapping(value = "/undoLastSign", method = RequestMethod.POST)
-	public @ResponseBody String undoLastSign(@RequestParam String uuid) {
+	public @ResponseBody String undoLastSign(@RequestParam String uuid, @RequestParam(defaultValue="false") String searchForSignature) {
 		JSONObject ret = new JSONObject();
 		try {
 			logger.debug("Called undoLastSign ");
 			logger.info("Document to sign uuid: " + uuid);
-			signerFactory.getSigner(uuid).undo();
-			ret.put("uuid", uuid);
+			boolean done = signerFactory.getSigner(uuid).undo(Boolean.parseBoolean(searchForSignature));
+			if (done)
+				ret.put("uuid", uuid);
 		} catch (Exception e) {
 			logger.error("Internal Server Error - " + e.getMessage(), e);
 			ret.put("errorMessage", "Cannot undo Last Sign. " + e.getMessage());

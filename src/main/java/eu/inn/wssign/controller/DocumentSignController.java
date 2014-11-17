@@ -156,6 +156,12 @@ public class DocumentSignController {
 			InnoBaseSign<UUID> s = signerFactory.getSigner(uuid);
 			s.getPageImage(page, 2, new IPdfRenderedListener() {
 				@Override
+				public void onDocumentLoaded() {
+					// TODO Auto-generated method stub
+					
+				}
+				
+				@Override
 				public void onRendered(int page, double scale, byte[] image) {
 					pageImage.put("imageb64", Base64.encodeBase64String(image));
 				}
