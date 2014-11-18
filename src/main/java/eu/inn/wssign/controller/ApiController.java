@@ -1,11 +1,14 @@
 package eu.inn.wssign.controller;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -13,6 +16,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -55,7 +59,7 @@ public class ApiController {
 
 	@RequestMapping(value = "/getBindingInfo")
 	public @ResponseBody byte[] getBindingInfo(@RequestParam String uuid) {
-
+		Date d1 = new Date();
 		JSONObject ret = new JSONObject();
 		try {
 			PdfBinding bind = signerFactory.getSigner(uuid).getBindingInfo();
@@ -68,11 +72,14 @@ public class ApiController {
 			logger.error("Internal Server Error - " + e.getMessage(), e);
 			ret.put("errorMessage", "Cannot get binding. " + e.getMessage());
 		}
+		Date d2 = new Date();
+		timing.debug("getBindingInfo "+uuid+" : "+(d2.getTime()-d1.getTime())+"ms");
 		return ret.toJSONString().getBytes();
 
 	}
 
 	private static final Logger logger = Logger.getLogger(ApiController.class);
+	private static final Logger timing = Logger.getLogger("TIMING");
 
 	public ApiController() throws IOException {
 
@@ -81,6 +88,7 @@ public class ApiController {
 	@RequestMapping(value = "/signFEA", method = RequestMethod.POST)
 	public @ResponseBody String signFEA(@RequestParam String uuid, @RequestParam String sigName,
 			@RequestParam String xmlBioSignature, @RequestParam String base64image) {
+		Date d1 = new Date();
 		JSONObject ret = new JSONObject();
 
 		try {
@@ -94,11 +102,14 @@ public class ApiController {
 			logger.error("Internal Server Error - " + e.getMessage(), e);
 			ret.put("errorMessage", "Cannot sign document. " + e.getMessage());
 		}
+		Date d2 = new Date();
+		timing.debug("signFEA "+uuid+" : "+(d2.getTime()-d1.getTime())+"ms");
 		return ret.toJSONString();
 	}
 
 	@RequestMapping(value = "/undoLastSign", method = RequestMethod.POST)
 	public @ResponseBody String undoLastSign(@RequestParam String uuid, @RequestParam(defaultValue="false") String searchForSignature) {
+		Date d1 = new Date();
 		JSONObject ret = new JSONObject();
 		try {
 			logger.debug("Called undoLastSign ");
@@ -110,6 +121,8 @@ public class ApiController {
 			logger.error("Internal Server Error - " + e.getMessage(), e);
 			ret.put("errorMessage", "Cannot undo Last Sign. " + e.getMessage());
 		}
+		Date d2 = new Date();
+		timing.debug("undoLastSign "+uuid+" : "+(d2.getTime()-d1.getTime())+"ms");
 		return ret.toJSONString();
 	}
 
@@ -117,6 +130,7 @@ public class ApiController {
 	public @ResponseBody String signLocalStep1(@RequestParam String uuid, @RequestParam String base64Cert,
 			@RequestParam String sigName, @RequestParam(defaultValue = "") String xmlBioSignature,
 			@RequestParam(defaultValue = "") String base64image) {
+		Date d1 = new Date();
 		JSONObject ret = new JSONObject();
 		try {
 			SignatureParameters sp = new SignatureParameters();
@@ -135,11 +149,14 @@ public class ApiController {
 		} catch (Exception e) {
 			ret.put("errorMessage", e.getMessage());
 		}
+		Date d2 = new Date();
+		timing.debug("signLocalStep1 "+uuid+" : "+(d2.getTime()-d1.getTime())+"ms");
 		return ret.toJSONString();
 	}
 
 	@RequestMapping(value = "/signLocalStep2", method = RequestMethod.POST)
 	public @ResponseBody String signLocalStep2(@RequestParam String uuid, @RequestParam String base64Digest) {
+		Date d1 = new Date();
 		JSONObject ret = new JSONObject();
 		try {
 			signerFactory.getSigner(uuid).sign(null, Base64.decodeBase64(base64Digest));
@@ -147,12 +164,14 @@ public class ApiController {
 		} catch (Exception e) {
 			ret.put("errorMessage", e.getMessage());
 		}
-
+		Date d2 = new Date();
+		timing.debug("signLocalStep2 "+uuid+" : "+(d2.getTime()-d1.getTime())+"ms");
 		return ret.toJSONString();
 	}
 
 	@RequestMapping(value = "/upload", method = RequestMethod.POST)
 	public @ResponseBody void upload(HttpServletRequest request, HttpServletResponse response) {
+		Date d1 = new Date();
 		JSONObject ret = new JSONObject();
 		try {
 			MultipartHttpServletRequest multipartRequest = (MultipartHttpServletRequest) request;
@@ -168,18 +187,22 @@ public class ApiController {
 			logger.error("Internal Server Error - " + e.getMessage(), e);
 			ret.put("errorMessage", "Cannot upload document. " + e.getMessage());
 		}
+		
 		try {
 			response.getOutputStream().print(ret.toJSONString());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		Date d2 = new Date();
+		timing.debug("upload : "+(d2.getTime()-d1.getTime())+"ms");
 	}
 
 	private static JSONObject signatureToObject(SignatureField s) {
-		JSONObject ret = new JSONObject();
+		
+		JSONObject ret = new JSONObject();		
 		if (s instanceof ParsedSignatureField) {
 			ret.put("text", ((ParsedSignatureField) s).getText());
-			ret.put("created", ((ParsedSignatureField) s).isCreated());
+			ret.put("created", s.isCreated());
 		} else {
 			ret.put("name", s.getName());
 			ret.put("signed", s.isSigned());
@@ -195,6 +218,7 @@ public class ApiController {
 
 	@RequestMapping(value = "/getTotalPages")
 	public @ResponseBody byte[] getPdfInfo(@RequestParam String uuid) {
+		Date d1 = new Date();
 		JSONObject ret = new JSONObject();
 		try {
 			ret.put("pages", signerFactory.getSigner(uuid).getTotalPages());
@@ -202,11 +226,14 @@ public class ApiController {
 			logger.error("Internal Server Error - " + e.getMessage(), e);
 			ret.put("errorMessage", "Cannot get signatures. " + e.getMessage());
 		}
+		Date d2 = new Date();
+		timing.debug("getTotalPages "+uuid+" : "+(d2.getTime()-d1.getTime())+"ms");
 		return ret.toJSONString().getBytes();
 	}
 
 	@RequestMapping(value = "/getPageInfo")
 	public @ResponseBody byte[] getPdfInfo(@RequestParam String uuid, @RequestParam int page) {
+		Date d1 = new Date();
 		JSONObject ret = new JSONObject();
 		try {
 			PdfPageInfo pInfo = signerFactory.getSigner(uuid).getPageInfo(page);
@@ -216,6 +243,8 @@ public class ApiController {
 			logger.error("Internal Server Error - " + e.getMessage(), e);
 			ret.put("errorMessage", "Cannot get signatures. " + e.getMessage());
 		}
+		Date d2 = new Date();
+		timing.debug("getPageInfo "+uuid+" : "+(d2.getTime()-d1.getTime())+"ms");
 		return ret.toJSONString().getBytes();
 	}
 
@@ -223,7 +252,7 @@ public class ApiController {
 	public @ResponseBody byte[] getSignatures(@RequestParam String uuid,
 			@RequestParam(defaultValue = "true") boolean skipTextAnalysis,
 			@RequestParam(defaultValue = "§dsig") String prefix, @RequestParam(required = false) String suffix) {
-
+		Date d1 = new Date();
 		JSONObject ret = new JSONObject();
 		try {
 			Collection<SignatureField> sigs = signerFactory.getSigner(uuid)
@@ -237,6 +266,8 @@ public class ApiController {
 			logger.error("Internal Server Error - " + e.getMessage(), e);
 			ret.put("errorMessage", "Cannot get signatures. " + e.getMessage());
 		}
+		Date d2 = new Date();
+		timing.debug("getSignatures "+uuid+" : "+(d2.getTime()-d1.getTime())+"ms");
 		return ret.toJSONString().getBytes();
 
 	}
@@ -244,6 +275,7 @@ public class ApiController {
 	@RequestMapping(value = "/addSignatureFields", method = RequestMethod.POST)
 	public @ResponseBody byte[] addSignatureFields(final @RequestParam String uuid, String signatures,
 			@RequestParam(defaultValue = "true") boolean throwsOnError) {
+		Date d1 = new Date();
 		JSONObject ret = new JSONObject();
 		try {
 			List<SignatureField> fieldToAdd = new ArrayList<SignatureField>();
@@ -271,12 +303,15 @@ public class ApiController {
 			logger.error("Internal Server Error - " + ex.getMessage(), ex);
 			ret.put("errorMessage", "Cannot prepare document. " + ex.getMessage());
 		}
+		Date d2 = new Date();
+		timing.debug("addSignatureFields "+uuid+" : "+(d2.getTime()-d1.getTime())+"ms");
 		return ret.toJSONString().getBytes();
 	}
 
 	@RequestMapping(value = "/download", method = RequestMethod.GET)
 	public @ResponseBody byte[] download(final @RequestParam String uuid, HttpServletResponse response,
 			HttpServletRequest request) {
+		Date d1 = new Date();
 		try {
 			FileObject f = signerFactory.getSigner(uuid).getFileObject();
 			if (f == null)
@@ -295,11 +330,15 @@ public class ApiController {
 			logger.error("Internal Server Error - " + e.getMessage());
 			throw new ResourceNotFoundException();
 		}
+		finally {
+			Date d2 = new Date();
+			timing.debug("download "+uuid+" : "+(d2.getTime()-d1.getTime())+"ms");
+		}
 	}
 
 	@RequestMapping(value = "/exists", method = RequestMethod.GET)
 	public @ResponseBody byte[] exists(final @RequestParam String uuid) throws IOException {
-
+		Date d1 = new Date();
 		JSONObject ret = new JSONObject();
 		try {
 			FileObject fo = signerFactory.getSigner(uuid).getFileObject();
@@ -312,21 +351,29 @@ public class ApiController {
 			ret.put("name", "");
 			ret.put("uuid", uuid);
 		}
+		Date d2 = new Date();
+		timing.debug("exists "+uuid+" : "+(d2.getTime()-d1.getTime())+"ms");
 		return ret.toJSONString().getBytes();
 	}
 
 	@RequestMapping(value = "/getFileBytes", method = RequestMethod.GET)
 	public @ResponseBody void getFileBytes(final @RequestParam String uuid, HttpServletResponse response)
 			throws IOException {
+		Date d1 = new Date();
 		try {
-			byte[] data = signerFactory.getSigner(uuid).getFileObject().getData();
+//			byte[] data = signerFactory.getSigner(uuid).getFileObject().getData();
+			File f = signerFactory.getSigner(uuid).getFileObject().getFile();
 			response.setContentType("application/pdf");
-			response.setContentLength(data.length);
+			response.setContentLength((int)f.length());
 			response.setHeader("Content-Disposition", "attachment; filename=\"" + uuid + ".pdf\"");
 			response.flushBuffer();
-			IOUtils.write(data, response.getOutputStream());
+			IOUtils.copy(new FileInputStream(f), response.getOutputStream());
 		} catch (Exception ex) {
 			throw new ResourceNotFoundException();
+		}
+		finally {
+			Date d2 = new Date();
+			timing.debug("getFileBytes "+uuid+" : "+(d2.getTime()-d1.getTime())+"ms");
 		}
 	}
 

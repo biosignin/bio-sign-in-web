@@ -1998,7 +1998,7 @@ body {
 	
 	function sendToSmartphone()
 	{
-		var body="bsi://biosignin.org?"+uuid;
+		var body="bsi://biosignin.org?uuid="+uuid;
 		location.href = "mailto:?body="+body;
 	}
 	
