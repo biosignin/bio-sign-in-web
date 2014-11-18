@@ -1572,6 +1572,7 @@ body {
 	$(document).ready(function() {
 
 		startApplet();
+		createSmartphoneDialog();
 		//$($("#btnSign")[0].parentNode).addClass("current");
 
 		//$("#wizard").tabs();
@@ -1993,6 +1994,39 @@ body {
 		  var myNav = navigator.userAgent.toLowerCase();
 		  return (myNav.indexOf('msie') != -1) ? parseInt(myNav.split('msie')[1]) : false;
 		}
+	
+	
+	function sendToSmartphone()
+	{
+		var body="bsi://biosignin.org?"+uuid;
+		location.href = "mailto:?body="+body;
+	}
+	
+	function createSmartphoneDialog()
+	{
+		$("#smartphone-dialog")
+		.dialog(
+				{
+					resizable: false,
+					draggable: false,
+					autoOpen : false,
+					minHeight : '605px',
+					width : '830px',
+					modal : true,
+					open : function(event, ui) {
+						$("#smartUrl").val('bsi://biosignin.org?'+uuid);
+					},
+					buttons : {
+						'<spring:message code="label.inviaUrlViaMail" text="Invia email" />' : function() {
+							sendToSmartphone();
+							$("#smartphone-dialog").dialog("close");
+						}
+					
+					}
+					
+				
+				});
+	}
 </script>
 
 </head>
@@ -2112,6 +2146,15 @@ body {
 													onmouseover="this.src='../Images/annullaFirmaHover.png'"
 													onmouseout="this.src='../Images/annullaFirma.png'"
 													onclick="undoSign()" /></td>
+													
+												<td style="width: 40px"><img style=""
+													title='<spring:message code="label.sendToSmartphone" text="Send to Smartphone" />' width="40px" height="40px"
+													src="../Images/sendToSmartphon.png"
+													onmouseover="this.src='../Images/sendToSmartphonHover.png'"
+													onmouseout="this.src='../Images/sendToSmartphon.png'"
+													onclick='$("#smartphone-dialog").dialog("open");' /> 
+
+												</td>
 											</tr>
 										</table> <!-- 											    <img style="display: inline;" id="imgFineFirmaDisabled" width="40px" height="40px"  src="../Images/stop_signature_disabled.png" /> -->
 										<!-- 											    <img title="Fine firma" style="display: none" id="imgFineFirmaEnabled" width="40px" height="40px"  src="../Images/stop_signature.png" onmouseover="this.src='../Images/stop_signature_hover.png'" onmouseout="this.src='../Images/stop_signature.png'" onclick="endDocument();" /> -->
@@ -2310,5 +2353,11 @@ body {
 <!-- 		 <pre data-bind="text: 'DEBUG: \r\n'+ko.toJSON($root, null, 2)" style="float: left"></pre> -->
 	</div>
 	<c:import url="loading.jsp"></c:import>
+	
+	
+	<div id="smartphone-dialog" align="center">
+		Smartphone URL
+		<input type="text" id="smartUrl" style="width: 500px">
+	</div>
 </body>
 </html>
