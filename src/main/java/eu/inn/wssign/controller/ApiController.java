@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -40,10 +41,12 @@ import eu.inn.sign.InnoBaseSign;
 import eu.inn.sign.datalayer.FileObject;
 import eu.inn.sign.pdf.document.PdfBinding;
 import eu.inn.sign.pdf.document.PdfPageInfo;
+import eu.inn.sign.pdf.render.IPdfRenderedListener;
 import eu.inn.sign.signature.ParsedSignatureField;
 import eu.inn.sign.signature.SignatureField;
 import eu.inn.sign.signature.SignatureParameters;
 import eu.inn.wssign.InnoSignerFactory;
+import eu.inn.wssign.controller.DocumentSignController.ResourceNotFoundException;
 import eu.inn.wssign.controller.utils.AuditLogger;
 
 /**
@@ -138,14 +141,14 @@ public class ApiController {
 			sp.setSignImageBase64(base64image);
 			sp.setName(sigName);
 			CertificateFactory cf = CertificateFactory.getInstance("X509");
-			ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(base64Cert));
+			ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(base64Cert.getBytes("UTF-8")));
 			X509Certificate cert = (X509Certificate) cf.generateCertificate(bais);
 			try {
 				bais.close();
 			} catch (Exception ex) {
 			}
 			byte[] toBeSigned = signerFactory.getSigner(uuid).getToBeSignedData(sp, cert);
-			ret.put("signData", Base64.encodeBase64String(toBeSigned));
+			ret.put("signData", new String(Base64.encodeBase64(toBeSigned), "UTF-8"));
 		} catch (Exception e) {
 			ret.put("errorMessage", e.getMessage());
 		}
@@ -159,7 +162,7 @@ public class ApiController {
 		Date d1 = new Date();
 		JSONObject ret = new JSONObject();
 		try {
-			signerFactory.getSigner(uuid).sign(null, Base64.decodeBase64(base64Digest));
+			signerFactory.getSigner(uuid).sign(null, Base64.decodeBase64(base64Digest.getBytes("UTF-8")));
 			ret.put("uuid", uuid.toString());
 		} catch (Exception e) {
 			ret.put("errorMessage", e.getMessage());
@@ -377,6 +380,62 @@ public class ApiController {
 		}
 	}
 
+	private class bean{
+		Float width=0f;
+		Float heigth=0f;
+		int totalPages=0;
+	}
+	
+	@RequestMapping(value = "/getImage", method = RequestMethod.GET)
+	public @ResponseBody String getPageAsImage(final @RequestParam String uuid, int page, HttpServletResponse res) {
+		Date d1 = new Date();
+		if (page <= 0)
+			throw new ResourceNotFoundException();
+		try {
+			System.err.println("Generating page " + page);
+			final JSONObject pageImage = new JSONObject();
+			InnoBaseSign<UUID> s = signerFactory.getSigner(uuid);
+			final bean b = new bean();
+			s.getPageImage(page, 1, new IPdfRenderedListener() {
+				@Override
+				public void onDocumentLoaded(int totalPages, Object[] addictionalData) {
+					// TODO Auto-generated method stub
+					b.totalPages=totalPages;
+					try {
+						b.width=Float.parseFloat(addictionalData[0].toString());
+						b.heigth=Float.parseFloat(addictionalData[1].toString());
+					}catch (Exception e)
+					{
+						e.printStackTrace();
+					}
+				}				
+				
+				@Override
+				public void onRendered(int page, double scale, byte[] image) {
+					try {
+						pageImage.put("imageb64", new String(Base64.encodeBase64(image), "UTF-8"));
+					} catch (UnsupportedEncodingException e) {
+						throw new RuntimeException(e);
+					}
+				}
+			});
+			if (b.width==0)
+				b.width=s.getPageInfo(page).getWidth();
+			pageImage.put("width", b.width.intValue());
+			pageImage.put("height", b.heigth.intValue());
+			pageImage.put("totalPages", b.totalPages);
+			return pageImage.toJSONString();
+		} catch (Exception e) {
+			logger.error("Internal Server Error - " + e.getMessage());
+			e.printStackTrace();
+			throw new ResourceNotFoundException();
+		}
+		finally {
+			Date d2 = new Date();
+			timing.debug("getImage "+uuid+" : "+(d2.getTime()-d1.getTime())+"ms");
+		}
+	}
+	
 	@SuppressWarnings("serial")
 	@ResponseStatus(value = HttpStatus.NOT_FOUND)
 	public class ResourceNotFoundException extends RuntimeException {

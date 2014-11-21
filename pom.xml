@@ -50,7 +50,11 @@
 	</build>
 
 	<dependencies>
-
+<!-- 		<dependency> -->
+<!-- 			<groupId>org.icepdf.os</groupId> -->
+<!-- 			<artifactId>icepdf-core</artifactId> -->
+<!-- 			<version>0.0.1-SNAPSHOT</version> -->
+<!-- 		</dependency> -->
 
 		<!-- Spring MVC -->
 		<dependency>
@@ -159,10 +163,27 @@
 			<artifactId>sitemesh</artifactId>
 			<version>2.4.2</version>
 		</dependency>
+
+		<!-- <dependency> -->
+		<!-- <groupId>eu.inn.sign</groupId> -->
+		<!-- <artifactId>sdk-core</artifactId> -->
+		<!-- <version>0.3.1-SNAPSHOT</version> -->
+		<!-- </dependency> -->
+		<!-- <dependency> -->
+		<!-- <groupId>eu.inn.sign</groupId> -->
+		<!-- <artifactId>renderer-icepdf</artifactId> -->
+		<!-- <version>0.3.1-SNAPSHOT</version> -->
+		<!-- </dependency> -->
 		<dependency>
 			<groupId>eu.inn.sign</groupId>
 			<artifactId>java-sdk</artifactId>
-			<version>0.3.0</version>
+			<version>0.3.1-SNAPSHOT</version>
+<!-- 			<exclusions> -->
+<!-- 				<exclusion> -->
+<!-- 					<groupId>org.icepdf.os</groupId> -->
+<!-- 					<artifactId>icepdf-core</artifactId> -->
+<!-- 				</exclusion> -->
+<!-- 			</exclusions> -->
 		</dependency>
 	</dependencies>
 	<distributionManagement>

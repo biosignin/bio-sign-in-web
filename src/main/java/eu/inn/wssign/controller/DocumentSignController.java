@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.security.Security;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -156,14 +157,17 @@ public class DocumentSignController {
 			InnoBaseSign<UUID> s = signerFactory.getSigner(uuid);
 			s.getPageImage(page, 2, new IPdfRenderedListener() {
 				@Override
-				public void onDocumentLoaded() {
+				public void onDocumentLoaded(int totalPages, Object[] addictionalData) {
 					// TODO Auto-generated method stub
 					
 				}
-				
 				@Override
 				public void onRendered(int page, double scale, byte[] image) {
-					pageImage.put("imageb64", Base64.encodeBase64String(image));
+					try {
+						pageImage.put("imageb64", new String(Base64.encodeBase64(image), "UTF-8"));
+					} catch (UnsupportedEncodingException e) {
+						throw new RuntimeException(e);
+					}
 				}
 			});
 			pageImage.put("width", s.getPageInfo(page).getWidth());
@@ -205,15 +209,14 @@ public class DocumentSignController {
 			SignatureParameters sp = new SignatureParameters();
 			sp.setName(sigName);
 			CertificateFactory cf = CertificateFactory.getInstance("X509");
-			ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(base64Cert));
+			ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(base64Cert.getBytes("UTF-8")));
 			X509Certificate cert = (X509Certificate) cf.generateCertificate(bais);
 			try {
 				bais.close();
 			} catch (Exception ex) {
 			}
 			byte[] toBeSigned = signerFactory.getSigner(uuid).getToBeSignedData(sp, cert);
-			ret.put("signData", Base64.encodeBase64String(toBeSigned));
-
+			ret.put("signData", new String(Base64.encodeBase64(toBeSigned), "UTF-8"));
 		} catch (Exception e) {
 			ret.put("errorMessage", e.getMessage());
 		}
@@ -225,7 +228,7 @@ public class DocumentSignController {
 			@RequestParam String docType, @RequestParam String sigName) {
 		JSONObject ret = new JSONObject();
 		try {
-			signerFactory.getSigner(uuid).sign(null, Base64.decodeBase64(base64Digest));
+			signerFactory.getSigner(uuid).sign(null, Base64.decodeBase64(base64Digest.getBytes("UTF-8")));
 			ret.put("uuid", uuid.toString());
 		} catch (Exception e) {
 			ret.put("errorMessage", e.getMessage());
@@ -381,7 +384,7 @@ public class DocumentSignController {
 			throws IOException {
 		try {
 			byte[] data = baseDataLayer.getFirstFile(UUID.fromString(uuid)).getData();
-			return Base64.encodeBase64String(data);
+			return new String(Base64.encodeBase64(data), "UTF-8");
 		} catch (Exception ex) {
 			throw new ResourceNotFoundException();
 		}

@@ -17,6 +17,7 @@ import eu.inn.sign.InnoBaseSign;
 import eu.inn.sign.datalayer.IDataLayer;
 import eu.inn.sign.pdf.document.impl.PdfBoxPdfDocumentType;
 import eu.inn.sign.pdf.render.IcePdfRenderer;
+import eu.inn.sign.pdf.renderer.impl.PdfBoxRenderer;
 import eu.inn.sign.pdf.signature.LocalPdfSignatureManager;
 
 public class InnoSignerFactory {
@@ -56,7 +57,7 @@ public class InnoSignerFactory {
 
 	public InnoBaseSign<UUID> createSigner() throws Exception {
 		PdfBoxPdfDocumentType myDocumentType = new PdfBoxPdfDocumentType();
-		myDocumentType.setPdfRender(new IcePdfRenderer());
+		myDocumentType.setPdfRender(new PdfBoxRenderer());
 		LocalPdfSignatureManager sigManager = new LocalPdfSignatureManager(getStore(), aliasPwd, alias);
 		InnoBaseSign<UUID> ret = new InnoBaseSign<UUID>(dataLayer, sigManager, myDocumentType);
 		return ret;
