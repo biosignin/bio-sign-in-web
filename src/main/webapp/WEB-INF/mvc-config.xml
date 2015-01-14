@@ -13,7 +13,15 @@
 	<context:component-scan base-package="eu.inn.wssign" />
 
 	<mvc:annotation-driven />
+<bean id="jacksonMessageConverter" class="org.springframework.http.converter.json.MappingJacksonHttpMessageConverter"/>
 
+  <bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
+<property name="messageConverters">
+  <list>
+    <ref bean="jacksonMessageConverter"/>
+  </list>
+</property>
+</bean>
 	<bean id="dataLayer" name="dataLayer"
 		class="eu.inn.sign.datalayer.impl.LocalFSDataLayer">
 		<constructor-arg type="java.lang.String" value="${tempDir}" />
