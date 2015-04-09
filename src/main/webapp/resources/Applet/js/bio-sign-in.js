@@ -6,6 +6,7 @@ function WebSigning(appletName, appletContainer, codeBasePath) {
 }
 
 WebSigning.prototype.createTabletManagerApplet = function(statusCallback) {
+
 	 var attributes = {
 		id : this.appletName,
 		code : 'eu.inn.biosign.DeviceManager.class',
@@ -61,8 +62,7 @@ WebSigning.prototype.setSignRectangle = function(x,y,width,height) {
 		try{
 			selectedApplet.setSignRectangle(x,y,width,height);
 		}
-		catch(r)
-		{
+		catch(r) {
 			console.log("exception setSignRectangle: "+r);
 		}
 		
@@ -75,8 +75,7 @@ WebSigning.prototype.setPdfFile = function(base64File) {
 		try{
 			selectedApplet.setPdfFile(base64File);
 		}
-		catch(r)
-		{
+		catch(r) {
 			console.log("exception setPdfFile: "+r);
 		}
 	}, 0);
@@ -131,8 +130,7 @@ WebSigning.prototype.setPdfBase64Image = function(imageDataString,pdfPointWidth,
 	//}, 0);
 };
 
-WebSigning.prototype.setPdfAndRect = function(imageDataString,pdfPointWidth,
-		actualPage,totalPage,x,y,width,height) {
+WebSigning.prototype.setPdfAndRect = function(imageDataString,pdfPointWidth,actualPage,totalPage,x,y,width,height) {
 //	setTimeout(function() {
 		
 		try{
@@ -254,6 +252,8 @@ WebSigning.prototype.setBindingData = function(hash, alg, offset, count) {
 	}
 	
 };
+
+
 
 WebSigning.prototype.signAcquired = function(bio, image) {
 //	console.log(this.appletContainer);

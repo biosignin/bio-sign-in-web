@@ -2,215 +2,113 @@
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions"%>
 <%@ taglib uri="http://www.springframework.org/tags" prefix="spring"%>
 <c:set var="req" value="${pageContext.request}" />
-<c:set var="baseURL"
-	value="${fn:replace(req.requestURL, fn:substring(req.requestURI, 1, fn:length(req.requestURI)), req.contextPath)}" />
+<c:set var="baseURL" value="${fn:replace(req.requestURL, fn:substring(req.requestURI, 1, fn:length(req.requestURI)), req.contextPath)}" />
 
-
-	
-
-<!--
-	
-//-->
-
-<script type="text/javascript"
-	src="<c:url value='/Script/sctp/main.js' />"></script>
-<script type="text/javascript"
-	src="<c:url value='/Script/sctp/extra.js' />"></script>
-	<script src="<c:url value="/Script/json2.js"/>"></script>
+<script type="text/javascript" src="<c:url value='/Script/sctp/main.js' />"></script>
+<script type="text/javascript" src="<c:url value='/Script/sctp/extra.js' />"></script>
+<script src="<c:url value="/Script/json2.js"/>"></script>
 <script type="text/javascript">
 
-	// function abilita() {
-	// 	var isFormValid = true;
-	// 	getAllInput().each(function() {
-	// 		console.log('checkin '+$(this)[0].id+ ' - "'+$(this).val()+'"');
-	// 		if (!$(this).val())
-	// 			isFormValid = false;
-	// 	});
-	// 	$("#dialog-form input[type='submit']").prop('disabled', !isFormValid);
-	// }
-
-	// function getAllInput(){
-	// 	return $('#dialog-form input').not(':input[type=button], :input[type=submit], :input[type=reset]');
-	// }
 	var selectCertFromList=false;
 	var currentUrlWithPath = "<c:out value='${baseURL}'/>";
-	
 	var codeBaseWithHost = "<c:out value='${baseURL}'/>";
-	
-	
 	var selectedName;
-	
-	
+	var buttons;
+	var standardButtons = {
+		'<spring:message code="label.cancel" text="Cancel" />' : function() {
+			$(this).dialog("close");
+		},
+		'<spring:message code="label.skip.signature" text="Skip Signature" />':function() {
+			if(playClicked)
+			{
+				var sig = getSignatureById(viewModel.signatureSelected());
+				if(sig.name().indexOf('_MAND_1')!=-1)
+					alert("La firma è obbligatoria");
+				else
+				{
+					signsStructure[sig.name()].skip =true;
+					playSignature();
+					$('#lblInfo').text('Please sign on your tablet');
+				}
+			}
+			
+		},
+		'<spring:message code="label.deletelastsignature" text="Delete Last Signature" />':function() {
+			if(playClicked)
+			{
+				annullaFirma();
+			}
+			
+		}
+	}
 	$(function() {
-		
-		
-		
 		$("#tabs").tabs( );
-		
 		$( "#tabsTipoFirma" ).tabs({
 			select: function(event, ui) {
         		if(ui.index==1)
         			load();
         	}
-	});
-		// 	abilita();
-		// 	getAllInput().each(function() {
-		// 		$(this).change(abilita);
-		// 	});
+		});
 
 		$("#sign-info").dialog({
 			autoOpen : false,
 			height : 'auto',
 			width : '550px',
 			modal : true
-
 		});
-
-		$("#dialog-form")
-				.dialog(
-						{
-							resizable: false,
-							draggable: false,
-							autoOpen : false,
-							minHeight : '605px',
-							width : '830px',
-							modal : true,
-							/*dialogClass: 'dlgfixed',
-						    position: "center",*/
-							//position:['center','top'],
-							//position: [document.body.clientWidth/2 -500,(window.screen.availHeight-50)/2 - Math.round($("#dialog-form").height())/2],
-							open : function(event, ui) {
-								
-
-								toTabRemoto();
-								//setTimeout(function()
-								{
-									$("#dialog-form")
-									.dialog({
-										position: [document.body.clientWidth/2 -500,$(window).height()/2 - Math.round($("#dialog-form").parent().height())/2]
-									});
-									selectedApplet = document.webSigningFD;
-									selectedAppletContainer=WebSigningApplet;
-									
-										
-									if(1==1 && !onlyShow) { //da 
-										if(signsStructure[getSignatureById(viewModel.signatureSelected()).name()].dsig)
-											WebSigningApplet.setSigTag(signsStructure[getSignatureById(viewModel.signatureSelected()).name()].dsig);
-									
-									}
-									if(onlyShow)
-									{
-										WebSigningApplet.setPdfBase64Image(codeBaseWithHost+'/signManagement/'+$('#pageImage').attr('src'),realWidthPage,
-												viewModel.actualPage(),viewModel.totalPages());
-										
-										WebSigningApplet.setSignRectangle(1,
-													1,
-													1,
-													1);
-											
-									}
-									
-								}
-								//,0);
-								
-								
-								if(playClicked==false)
-								{
-									$(".ui-dialog-buttonpane button:contains('Salta')").attr("disabled", true)
-			                        .addClass("ui-state-disabled");
-									$(".ui-dialog-buttonpane button:contains('Annulla')").attr("disabled", true)
-			                        .addClass("ui-state-disabled");
-								}
-								else
-								{
-									$(".ui-dialog-buttonpane button:contains('Salta')").attr("disabled", false)
-			                        .removeClass("ui-state-disabled");
-									$(".ui-dialog-buttonpane button:contains('Annulla')").attr("disabled", false)
-			                        .removeClass("ui-state-disabled");
-								}
-								
-								
-							},
-							buttons : {
-								/*"Sign" : function() {
-									playClicked=false;
-									popupSign();
-									
-									
-								},*/
-								'<spring:message code="label.cancel" text="Cancel" />' : function() {
-									/*WebSigningApplet.clearPanel();
-									WebSigningApplet.stop();*/
-									$(this).dialog("close");
-									
-								},
-								'<spring:message code="label.skip.signature" text="Skip Signature" />':function() {
-									if(playClicked)
-									{
-										var sig = getSignatureById(viewModel.signatureSelected());
-										if(sig.name().indexOf('_MAND_1')!=-1)
-											alert("La firma è obbligatoria");
-										else
-										{
-											//$(this).dialog("close");
-											signsStructure[sig.name()].skip =true;
-											playSignature();
-											
-										/*	if(1==1) { //da 
-												
-												WebSigningApplet.setPdfBase64Image(codeBaseWithHost+'/signManagement/'+$('#pageImage').attr('src'),realWidthPage);
-												
-												WebSigningApplet.setSignRectangle(getSignatureById(viewModel.signatureSelected()).left(),
-															getSignatureById(viewModel.signatureSelected()).top(),
-															getSignatureById(viewModel.signatureSelected()).width(),
-															getSignatureById(viewModel.signatureSelected()).height());
-													
-											}
-											if(WebSigningApplet!=null)
-												{
-												//console.log("called WebSigningApplet.appletStartCapture()()");
-												WebSigningApplet.appletStartCapture();
-												}*/
-											
-											$('#lblInfo').text('Please sign on your tablet');
-										}
-									}
-									
-								},
-								'<spring:message code="label.deletelastsignature" text="Delete Last Signature" />':function() {
-									if(playClicked)
-									{
-										annullaFirma();
-									}
-									
-								}
-							},
-							close : function() {
-								//WebSigningApplet=null;
-								//$('#webSigningFD').remove();
-								WebSigningApplet.clearPanel();
-								WebSigningApplet.stop();
-								toTabletExternal();
-								if(playClicked)
-									nextIndex = nextIndex-1;
-// 								WebSigningApplet=null;
-								
-// 								setTimeout(function(){
-// 										$('#tabletManagerPanel').html("");
-										
-// 									},0);
-								//$(this).dialog("close");
-							}
-						});
-
-		
-		
-		//$(".dlgfixed").center(false);
+		$("#dialog-form").dialog({
+			resizable: false,
+			draggable: false,
+			autoOpen : false,
+			minHeight : '605px',
+			width : '830px',
+			modal : true,
+			open : function(event, ui) {
+				toTabRemoto();
+				
+				$("#dialog-form").dialog('option', 'buttons', $.extend({}, signingInterface.customButtons(), standardButtons));
+				$("#dialog-form")
+				.dialog({
+					position: [document.body.clientWidth/2 -500,$(window).height()/2 - Math.round($("#dialog-form").parent().height())/2]
+				});
+				//selectedApplet = document.webSigningFD;
+				//selectedAppletContainer=WebSigningApplet;	
+				if(!onlyShow) { 
+					if(signsStructure[getSignatureById(viewModel.signatureSelected()).name()].dsig)
+						signingInterface.setSigTag(signsStructure[getSignatureById(viewModel.signatureSelected()).name()].dsig);			
+				}
+				if(onlyShow) {
+					signingInterface.setPdfBase64Image(codeBaseWithHost+'/signManagement/'+$('#pageImage').attr('src'),realWidthPage,
+							viewModel.actualPage(),viewModel.totalPages());
+					signingInterface.setSignRectangle(1,1,1,1);
+				}
+				if(playClicked==false) {
+					$(".ui-dialog-buttonpane button:contains('Salta')").attr("disabled", true)
+	                      .addClass("ui-state-disabled");
+					$(".ui-dialog-buttonpane button:contains('Annulla')").attr("disabled", true)
+	                      .addClass("ui-state-disabled");
+				}
+				else {
+					$(".ui-dialog-buttonpane button:contains('Salta')").attr("disabled", false)
+		                     .removeClass("ui-state-disabled");
+					$(".ui-dialog-buttonpane button:contains('Annulla')").attr("disabled", false)
+		                     .removeClass("ui-state-disabled");
+				}					
+			},
+			buttons : standardButtons
+				//$.extend({}, standardButtons, signingInterface.customButtons())
+				
+				,
+			close : function() {
+				signingInterface.clearPanel();
+				signingInterface.stop();
+				toTabletExternal();
+				if(playClicked)
+					nextIndex = nextIndex-1;
+			}
+		});
 	});
 
-	
-	
-	
 	function advancedChanged(a)
 	{
 		if(a.checked)
@@ -251,7 +149,6 @@
 			success : function(data) {
 				if (!data.errorMessage) {
 					closeLoadingPopup();
-					//console.log(data);
 					var digest= signData(data.signData);
 					$.ajax({
 						type : "POST",
@@ -294,11 +191,6 @@
 			dataType : 'json'
 		});
 	}
-	
-	/*function toggleVisualizzaDocumento(item)
-	{
-		WebSigningApplet.setEnableDocView(item.checked+'');
-	}*/
 	
 	function signTypeChanged()
 	{

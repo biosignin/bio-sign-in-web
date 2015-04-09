@@ -6,9 +6,7 @@
 <head>
 <meta charset="utf-8">
 
-<link rel="icon" 
-      type="image/png" 
-      href="<c:url value="/Images/favicon.png"/>" />
+<link rel="icon" type="image/png" href="<c:url value="/Images/favicon.png"/>" />
 
 <style type="text/css">
 .no-close .ui-dialog-titlebar-close {
@@ -39,8 +37,7 @@ body {
 }
 
 .signSelected {
-	background-image:
-		url('<c:url value="/Images/sigfield_unsigned_selected.png"/>');
+	background-image: url('<c:url value="/Images/sigfield_unsigned_selected.png"/>');
 }
 
 .sigScritta {
@@ -48,8 +45,7 @@ body {
 }
 
 .signUnselected {
-	background-image:
-		url('<c:url value="/Images/sigfield_unsigned_unselected.png"/>');
+	background-image: url('<c:url value="/Images/sigfield_unsigned_unselected.png"/>');
 }
 
 .signTaskVisible {
@@ -120,27 +116,20 @@ body {
 #uploadingContainer {
 	margin: 0px !important;
 	padding: 5px;
-	/*background-color: #ddd;*/
 	height: 80px;
 }
 
 #uploadtext {
-	/* 	text-align: center; */
 	font-size: 14px;
 	font-weight: bold;
 	color: black;
-	/* 	border: thin solid black; */
 }
 </style>
 
-<link rel="stylesheet" type="text/css"
-	href="<c:url value='/Style/style.css'/>" />
-	<link rel="stylesheet" type="text/css"
-	href="<c:url value='/Style/mystyle.css'/>" />
+<link rel="stylesheet" type="text/css" href="<c:url value='/Style/style.css'/>" />
+<link rel="stylesheet" type="text/css" href="<c:url value='/Style/mystyle.css'/>" />
 <link rel="stylesheet" href="<c:url value='/Style/jquery-ui.css'/>" />
-<%-- <link rel="stylesheet" href="<c:url value="/Style/jquery-ui.css"/>" /> --%>
-<link rel="stylesheet"
-	href="<c:url value="/Script/contextMenu/jquery.contextMenu.css"/>" />
+<link rel="stylesheet" href="<c:url value="/Script/contextMenu/jquery.contextMenu.css"/>" />
 <script>
 	window.console = window.console
 			|| (function() {
@@ -154,7 +143,12 @@ body {
 
 
 <script src="<c:url value="/Script/jquery-1.9.1/jquery-1.9.1.min.js"/>"></script>
-<script src="<c:url value="/Applet/js/bio-sign-in.js"/>"></script>
+<%-- <script src="<c:url value="/Applet/js/bio-sign-in.js"/>"></script> --%>
+<script src="<c:url value="/Applet/js/class.js"/>"></script>
+<script src="<c:url value="/Applet/js/hand-1.3.8.js"/>"></script>
+<script src="<c:url value="/Applet/js/SigningInterface.js"/>"></script>
+<script src="<c:url value="/Applet/js/AppletInterface.js"/>"></script>
+<script src="<c:url value="/Applet/js/TouchInterface.js"/>"></script>
 <script src="<c:url value="/Applet/js/deployJava.js"/>"></script>
 
 
@@ -175,9 +169,7 @@ body {
 <script src="<c:url value="/Script/pdfjs/pdf.js"/>"></script>
 
 <script>
-	var WebSigningApplet = null;
-	var selectedApplet;
-	var selectedAppletContainer;
+	var signingInterface;
 	var codeBase = "<c:url value='/Applet/applet/'/>";
 	var SCALE_FACTOR = (1 / (3 / 4) / 2);
 
@@ -495,9 +487,11 @@ body {
 	};
 
 	function loadImage(page) {
+		try{
 		if(!isIE()){
-			var imgB64 = pages[page - 1].hasNewSignature ? WebSigningApplet
+			var imgB64 = pages[page - 1].hasNewSignature ? signingInterface
 					.getPageB64(page, 1) : pages[page - 1].imgB64;
+			if (!imgB64) throw "Image not found, requesting trough ajax";
 			pages[page - 1].imgB64 = imgB64;
 			pages[page - 1].hasNewSignature = false;
 			realWidthPage = pages[page - 1].pointWidth * 2;
@@ -511,10 +505,12 @@ body {
 		}
 		else
 		{
-			if(pages[page-1]!=undefined)
+			if(pages[page-1]!=undefined )
 			{
-				var imgB64 = pages[page - 1].hasNewSignature ? WebSigningApplet
+				var imgB64 = pages[page - 1].hasNewSignature ? signingInterface
 						.getPageB64(page, 1) : pages[page - 1].imgB64;
+
+				if (!imgB64) throw "Image not found, requesting trough ajax"
 				pages[page - 1].imgB64 = imgB64;
 				pages[page - 1].hasNewSignature = false;
 				$('#pageImage').attr('src', 'data:image/png;base64,' + imgB64);
@@ -555,6 +551,42 @@ body {
 
 				});
 			}
+			
+		}
+		}catch (r){
+			console.log(r);
+			$.ajax({
+				dataType : 'json',
+				type : "GET",
+				url : 'getImage',
+				data : {
+					uuid : uuid,
+					page:page,
+					random:Math.random()
+				},
+				success : function(data) {
+
+					pages[page - 1] =
+						{
+							imgB64 : data.imageb64,
+							hasNewSignature : false,
+							totalPages:viewModel.totalPages(),
+							pointWidth:data.width,
+							pointHeight:data.height,
+							
+						};
+					
+					$('#pageImage').attr('src', 'data:image/png;base64,' + data.imageb64);
+					$('#pageImage').attr('height','100%').attr("width",'100%');
+					
+					
+				},
+				error : function(data) {
+
+					console.log(data);
+				}
+
+			});
 			
 		}
 	}
@@ -770,7 +802,7 @@ body {
 									## RESTART DELL'APPLET
 								 */
 								if (viewModel.bindingData.hash != '')
-									WebSigningApplet.setBindingData(
+									signingInterface.setBindingData(
 											viewModel.bindingData.hash,
 											viewModel.bindingData.alg,
 											viewModel.bindingData.offset,
@@ -778,13 +810,13 @@ body {
 
 								if (signsStructure[getSignatureById(
 										viewModel.signatureSelected()).name()].dsig)
-									WebSigningApplet
+									signingInterface
 											.setSigTag(signsStructure[getSignatureById(
 													viewModel
 															.signatureSelected())
 													.name()].dsig);
 
-								WebSigningApplet.setSignRectangle(
+								signingInterface.setSignRectangle(
 										getSignatureById(
 												viewModel.signatureSelected())
 												.left(), getSignatureById(
@@ -795,13 +827,13 @@ body {
 												viewModel.signatureSelected())
 												.height());
 
-								WebSigningApplet.setPdfBase64Image('', 0,
+								signingInterface.setPdfBase64Image('', 0,
 										viewModel.actualPage(), viewModel
 												.totalPages());
 
-								if (WebSigningApplet != null) {
+								if (signingInterface != null) {
 									// 						console.log("WebSigningApplet.appletStartCapture(); in remoteSign");
-									WebSigningApplet.appletStartCapture(false);
+									signingInterface.startCapture(false);
 									$('#lblInfo').text(
 											'Please sign on your tablet');
 								}
@@ -854,6 +886,8 @@ body {
 			height : height
 		});
 		div.append(clone_div);
+
+		signingInterface.hidePanel();
 		// 	        el.css({
 		// 	            position:'absolute'});
 		el.css({
@@ -867,6 +901,9 @@ body {
 	function toTabRemoto() {
 		$('#webSigningFD').height('480px');
 		$('#webSigningFD').width('800px');
+		signingInterface.showPanel(800,480);
+		//$('#someId').height('480px');
+		//$('#someId').width('800px');
 		$('#tabletExternal,#tabRemoto').empty();
 		var el = $('#tabletManagerPanel'), div = $('#tabRemoto'), clone_div = $('<div>');
 		var width = 800, height = 480;
@@ -885,20 +922,52 @@ body {
 		el.css("z-index", 99999);
 	}
 
+	//EVENTI TOUCH
+	function onDivPointerDown(e) {
+	      //  Assign the current pointer to the gesture object
+		    testbox.innerHTML = ""+e.pressure+"\r\nDown";
+	      this.gestureObject.addPointer(e.pointerId);
+	    }
+	    
+	    
+	    function onDivPointerMove(e) {
+	      //  Assign the current pointer to the gesture object
+		    testbox.innerHTML = ""+e.pressure+"\r\nMove";
+	    }
+	    
+	    function onDivGestureChange(e) {
+	      // Update the transform on this element
+	      var currentXform = new MSCSSMatrix(e.target.style.msTransform);
+	      e.target.style.msTransform = currentXform.translate(e.offsetX, e.offsetY).
+	      translate(e.translationX, e.translationY).
+	      translate(-e.offsetX, -e.offsetY);
+	    }
+
+	    function onDivGestureTap(e) {
+	      //  On tap (or click), change colors
+	      if (e.target.style.backgroundColor == "red") {
+	        e.target.style.backgroundColor = "green";
+	        }else{
+	        e.target.style.backgroundColor = "red";
+	      }
+	    }
+	    
+	    //FINE EVENTI TOUCH
+	
 	var appletEventBinding = false;
 	function startApplet() {
 		setTimeout(function() {
 			console.log("called startApplet()");
 			showText('<spring:message code="label.startapplet" text="Start Applet..." />', false)
 			selectedName = "FD";
-			if (!WebSigningApplet) {
+			if (!signingInterface) {
 
-				WebSigningApplet = new WebSigning('webSigningFD',
+				signingInterface = DetectSigningInterface('webSigningFD',
 						$('#tabletManagerPanel'), codeBase);
 
 				if (!appletEventBinding) {
 					console.log("Effettuo binding eventi applet");
-					$('#tabletManagerPanel').on('appletError', function(error) {
+					$('#tabletManagerPanel').on('deviceError', function(error) {
 						$('#lblError').text(error);
 					});
 
@@ -911,11 +980,11 @@ body {
 
 					$("#fileupload").prop('disabled', true);
 					$('#tabletManagerPanel').on(
-							'appletInitialized',
+							'initCompleted',
 							function() {
-								viewModel.connectedTab(WebSigningApplet
+								viewModel.connectedTab(signingInterface
 										.getDeviceInfo());
-								WebSigningApplet.setEnablePdfJS();
+								signingInterface.setEnablePdfJS();
 								//WebSigningApplet.clearPanel();
 							});
 
@@ -948,21 +1017,33 @@ body {
 
 					appletEventBinding = true;
 				}
+// 				if (window.PointerEvent){
+// 					showText("Detected touch device", false);
+// 					var testbox = document.getElementById("tabletManagerPanel");
+// 					  testbox.addEventListener("pointerdown", onDivPointerDown, true);
+// 			          testbox.addEventListener("pointermove", onDivPointerMove, true);
 
-				WebSigningApplet.createTabletManagerApplet(function(status) {
-					if (status == 2) {
-						$("#fileupload").prop('disabled', false);
-						showText("", true)
-					}
-					if (status == 3) {
-						showText("Error start applet", false)
-						//	 					alert ("Errore nell'avvio applet...");
-					}
-				});
+// 			          //  Instantiate a new gesture object and assign it to the div we're going to move
+// 			          testbox.gestureObject = new MSGesture();
+// 			          testbox.gestureObject.target = testbox;
+
+// 			          //  Set up handlers for gesture events
+// 			          testbox.addEventListener("MSGestureChange", onDivGestureChange, false);
+// 			          testbox.addEventListener("MSGestureTap", onDivGestureTap, false);
+// 				}
+// 				else {
+					signingInterface.createSigningInterface(function(status) {
+						if (status == 2) {
+							$("#fileupload").prop('disabled', false);
+							showText("", true);
+						}
+						if (status == 3) {
+							showText("Error start applet", false);
+						}
+					});
+// 				}
 			}
 		}, 0);
-		// 		selectedApplet = document.webSigningFD;
-		// 		selectedAppletContainer = WebSigningApplet;
 	}
 
 	$(function() {
@@ -1456,14 +1537,14 @@ body {
 								}
 
 							} else {
-								WebSigningApplet.removeLastSignature();
+								signingInterface.removeLastSignature();
 								//closeLoadingPopup();
 								alert('KO ' + data.errorMessage);
 								$('#lblInfo').text(
 										'Please sign again on your tablet');
 								console
-										.log("WebSigningApplet.appletStartCapture(); in remoteSign,signFEA,error");
-								WebSigningApplet.appletStartCapture(false);
+										.log("signingInterface.startCapture(); in remoteSign,signFEA,error");
+								signingInterface.startCapture(false);
 							}
 
 							showText("", true)
@@ -1471,7 +1552,7 @@ body {
 						error : function(xhr) {
 							base64Image = null;
 							xmlBioSignature = null;
-							WebSigningApplet.removeLastSignature();
+							signingInterface.removeLastSignature();
 							//closeLoadingPopup();							
 							showText(xhr.responseText, false)
 							//alert(xhr.responseText);
@@ -1556,8 +1637,8 @@ body {
 									$('#lblInfo').text(
 											'Please sign again on your tablet');
 								console
-										.log("WebSigningApplet.appletStartCapture(); in remoteSign-signv2");
-								WebSigningApplet.appletStartCapture(false);
+										.log("signingInterface.startCapture(); in remoteSign-signv2");
+								signingInterface.startCapture(false);
 							}
 
 						},
@@ -1743,9 +1824,9 @@ body {
 		} else {
 
 			$("#dialog-form").dialog("close");
-			if (WebSigningApplet != null) {
-				WebSigningApplet.clearPanel();
-				WebSigningApplet.stop();
+			if (signingInterface != null) {
+				signingInterface.clearPanel();
+				signingInterface.stop();
 			}
 			$("#signSeqDisabled").css("display", "inline");
 			$("#signSeq").css("display", "none");
@@ -1835,7 +1916,7 @@ body {
 			},
 			success : function(data) {
 
-				WebSigningApplet.removeLastSignature();
+				signingInterface.removeLastSignature();
 				var lastPageWithSignature = pages[pagesWithSignature.pop()];
 				if (lastPageWithSignature)
 					lastPageWithSignature.hasNewSignature = true;
@@ -1872,15 +1953,15 @@ body {
 		toTabRemoto();
 		if (1 == 1) { //da 
 
-			WebSigningApplet.setPdfBase64Image(codeBaseWithHost
+			signingInterface.setPdfBase64Image(codeBaseWithHost
 					+ '/signManagement/' + $('#pageImage').attr('src'),
 					realWidthPage, viewModel.actualPage(), viewModel
 							.totalPages());
 
-			WebSigningApplet.setSignRectangle(1, 1, 1, 1);
+			signingInterface.setSignRectangle(1, 1, 1, 1);
 
 		}
-		WebSigningApplet.appletStartCapture(true);
+		signingInterface.startCapture(true);
 
 	}
 
@@ -1957,41 +2038,26 @@ body {
 	}
 
 	function getPdfPage(pageIndex) {
-		//	
-			return pages[pageIndex];
-
+		return pages[pageIndex];
 	}
 
 	function back() {
 		location.href = "home";
 	}
-
-	// 	function showText(message,hidden) {
-	// 		if (hidden) {
-	// 			$("#messageText").text(message);
-	// 			$("#visibilityText").hide()
-	// 		} else {
-	// 			$("#messageText").text(message);
-	// 			$("#visibilityText").show();			
-	// 		}
-
-	// 	}
-
 	showText = function(message, hidden) {
-// 		setTimeout(function() {
-			if (hidden) {
-				$("#messageText").text(message);
-				$("#visibilityText").hide()
-			} else {
-				$("#messageText").text(message);
-				$("#visibilityText").show();
-			}
-// 		}, 10);
+		if (hidden) {
+			$("#messageText").text(message);
+			$("#visibilityText").hide()
+		} else {
+			$("#messageText").text(message);
+			$("#visibilityText").show();
+		}
 	};
 	
 	
 	function isIE () {
 		  var myNav = navigator.userAgent.toLowerCase();
+		  
 		  return (myNav.indexOf('msie') != -1) ? parseInt(myNav.split('msie')[1]) : false;
 		}
 	
@@ -2034,13 +2100,6 @@ body {
 
 
 <body>
-	<!-- <object id="plugin0" type="application/x-sctp" width="0" height="0" style="position: absolute;"> -->
-	<!-- 					        <param name="getp11path" value=""> -->
-	<!-- 					    </object> -->
-	<!-- 					    <div class="version" style="display: none"> -->
-	<!-- 					       <span id="plugin-version">v.0.0.0</span> -->
-	<!-- 					    </div> -->
-
 	<div class="operationState">
 		<div style="padding-left: 7px;" id="visibilityText">
 			<img style="width: 30px; vertical-align: middle; margin-right: 0px;"
@@ -2263,21 +2322,10 @@ body {
 
 
 												<!--  addSignature -->
-
-
 												<div id="imageContainer"
 													style="border: 5px solid #357eb3; width: 810px; position: relative;">
-
-
 													<!-- ko foreach: viewModel.signatureApplied() -->
 													<!-- ko if: $data.isVisible() -->
-
-													<!-- 												<div -->
-													<!-- 													data-bind="customPos: $data, click: $data.select, attr: {id: 'sign'+$data.id,  class: $data.id==viewModel.signatureSelected() ? 'sign signSelected' : 'sign signUnselected' } ,  style: { visibility : $data.page==viewModel.actualPage() ? 'visible' : 'hidden' }, event : { dblclick: $data.signOrShow }"> -->
-													<!-- 													<div class="signName" data-bind="text: $data.name()"></div> -->
-													<!-- 												</div> -->
-
-
 													<!-- ko if: $data.isEditable -->
 													<!-- ko if: $data.page==viewModel.actualPage() -->
 													<div
@@ -2303,58 +2351,26 @@ body {
 													<!-- /ko -->
 													<!-- /ko -->
 													<!-- /ko -->
-
-
-													<!-- 											<img id="pageImage" data-bind="attr: { src: viewModel.pageUrl() }" /> -->
 													<img id="pageImage" />
 												</div>
 
 											</div>
-
-
-
-											<%-- 									<c:import url="signFormFEA.jsp"></c:import> --%>
-
-
 										</div>
 									</td>
-
 								</tr>
 							</table>
-
-
 						</div>
 					</dl>
 				</div>
 			</div>
-
-
-
 		</div>
 		<div id="tabletExternal"></div>
-		<div id="tabletManagerPanel">
-			<!-- 	<object type="application/x-java-applet" name="webSigningFD" id="webSigningFD"  style="width: 1px; height: 1px;"> -->
-			<!-- 	<param name="separate_jvm" value="true"/> -->
-			<!-- 	<param name="java_arguments" value="-Xmx512m"/> -->
-			<!-- 	<param name="width" value="800"/> -->
-			<!-- 	<param name="java_status_events" value="true"> -->
-			<!-- 	<param name="height" value="480"/> -->
-			<!-- 	<param name="archive" value="applet-bio-sign-in.jar,bcprov-jdk15on-1.48.jar,bcmail-jdk15on-1.48.jar,bcpkix-jdk15on-1.48.jar"/> -->
-			<!-- 	 <param name="codebase" value="/bio-sign-in/Applet/applet"/> -->
-			<!-- 	<param name="code" value="eu.inn.biosign.DeviceManager.class"/> -->
-			<!-- 	<param name="mayscript" value="true"/> -->
-			<!-- 	 </object> -->
-
-
-		</div>
-
+		<div id="tabletManagerPanel"></div>
 		<c:import url="signFormFD.jsp"></c:import>
 
 <!-- 		 <pre data-bind="text: 'DEBUG: \r\n'+ko.toJSON($root, null, 2)" style="float: left"></pre> -->
 	</div>
 	<c:import url="loading.jsp"></c:import>
-	
-	
 	<div id="smartphone-dialog" align="center">
 		Smartphone URL
 		<input type="text" id="smartUrl" style="width: 500px">

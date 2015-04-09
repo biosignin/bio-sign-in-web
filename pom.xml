@@ -177,7 +177,7 @@
 		<dependency>
 			<groupId>eu.inn.sign</groupId>
 			<artifactId>java-sdk</artifactId>
-			<version>0.4.0-SNAPSHOT</version>
+			<version>0.4.0</version>
 			<!-- <exclusions> -->
 			<!-- <exclusion> -->
 			<!-- <groupId>org.icepdf.os</groupId> -->
@@ -188,7 +188,7 @@
 		<dependency>
 			<groupId>eu.inn.sign</groupId>
 			<artifactId>document-pdfbox</artifactId>
-			<version>0.3.1</version>
+			<version>0.4.1</version>
 		</dependency>
 	</dependencies>
 	<distributionManagement>
