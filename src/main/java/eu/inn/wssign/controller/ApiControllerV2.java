@@ -1,6 +1,7 @@
 package eu.inn.wssign.controller;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -38,6 +39,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
+
+import com.lowagie.text.pdf.PdfReader;
+import com.lowagie.text.pdf.PdfStamper;
 
 import eu.inn.sign.InnoBaseSign;
 import eu.inn.sign.datalayer.FileObject;
@@ -356,6 +360,26 @@ public class ApiControllerV2 {
 			Date d2 = new Date();
 			timing.debug("getFileBytes "+uuid+" : "+(d2.getTime()-d1.getTime())+"ms");
 		}
+	}
+	
+	@RequestMapping(value = "/getFileFlat", method = RequestMethod.GET)
+	public @ResponseBody byte[] getFileFlat(final @RequestParam String uuid, HttpServletResponse response)
+			throws IOException {
+		JSONObject ret = new JSONObject();
+		try {
+			byte[] data = signerFactory.getSigner(uuid).getFileObject().getData();
+			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+			PdfReader reader = new PdfReader(data);
+			PdfStamper stamp1 = new PdfStamper(reader, outputStream, '\0');
+			stamp1.setFormFlattening(true);
+			stamp1.close();
+			reader.close();
+			ret.put("documentFlat",org.apache.xml.security.utils.Base64.encode(outputStream.toByteArray()));
+			
+		} catch (Exception ex) {
+			throw new ResourceNotFoundException();
+		}
+		return ret.toJSONString().getBytes();
 	}
 
 	private class bean{

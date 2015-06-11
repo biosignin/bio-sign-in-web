@@ -387,7 +387,7 @@ public class ApiController {
 	}
 	
 	@RequestMapping(value = "/getImage", method = RequestMethod.GET)
-	public @ResponseBody String getPageAsImage(final @RequestParam String uuid, int page, HttpServletResponse res) {
+	public @ResponseBody String getPageAsImage(final @RequestParam String uuid, int page, @RequestParam(defaultValue="1") int scale,HttpServletResponse res) {
 		Date d1 = new Date();
 		if (page <= 0)
 			throw new ResourceNotFoundException();
@@ -396,7 +396,7 @@ public class ApiController {
 			final JSONObject pageImage = new JSONObject();
 			InnoBaseSign<UUID> s = signerFactory.getSigner(uuid);
 			final bean b = new bean();
-			s.getPageImage(page, 1, new IPdfRenderedListener() {
+			s.getPageImage(page, scale, new IPdfRenderedListener() {
 				@Override
 				public void onDocumentLoaded(int totalPages, Object[] addictionalData) {
 					// TODO Auto-generated method stub
