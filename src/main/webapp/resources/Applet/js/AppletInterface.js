@@ -1,4 +1,4 @@
-
+ 
 function AppletInterface(){}
 	  
 AppletInterface = SigningInterface.extend({	
