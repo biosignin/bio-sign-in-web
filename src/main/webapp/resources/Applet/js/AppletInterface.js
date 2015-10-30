@@ -16,7 +16,7 @@ AppletInterface = SigningInterface.extend({
 		var attributes = {
 			id : this.appletName,
 			code : 'eu.inn.biosign.DeviceManager.class',
-			archive : 'applet-bio-sign-in.jar,bcprov-jdk15on-1.50.jar,bcmail-jdk15on-1.50.jar,bcpkix-jdk15on-1.50.jar,stu-mod.jar,axiom-mod.jar',
+			archive : 'applet-bio-sign-in.jar,bcprov-jdk15on-1.50.jar,bcmail-jdk15on-1.50.jar,bcpkix-jdk15on-1.50.jar',
 			width : 1,
 			height : 1
 		};
