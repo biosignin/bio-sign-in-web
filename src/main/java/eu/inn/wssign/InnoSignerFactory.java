@@ -15,8 +15,8 @@ import com.google.common.cache.CacheBuilder;
 
 import eu.inn.sign.InnoBaseSign;
 import eu.inn.sign.datalayer.IDataLayer;
+import eu.inn.sign.datalayer.impl.LocalFSDataLayer;
 import eu.inn.sign.pdf.document.impl.PdfBoxPdfDocumentType;
-import eu.inn.sign.pdf.render.IcePdfRenderer;
 import eu.inn.sign.pdf.renderer.impl.PdfBoxRenderer;
 import eu.inn.sign.pdf.signature.LocalPdfSignatureManager;
 
@@ -44,11 +44,14 @@ public class InnoSignerFactory {
 		return store;
 	}
 
-	private Cache<UUID, InnoBaseSign<UUID>> cacheSigner = CacheBuilder.newBuilder().concurrencyLevel(4)
-			.expireAfterWrite(30, TimeUnit.MINUTES).build();
+	private Cache<UUID, InnoBaseSign<UUID>> cacheSigner = CacheBuilder.newBuilder().concurrencyLevel(4).build();
 
 	public InnoBaseSign<UUID> getSigner(UUID uuid) throws ExecutionException {
 		return cacheSigner.getIfPresent(uuid);
+	}
+	
+	public void removeSigner(UUID uuid) throws ExecutionException {
+		cacheSigner.invalidate(uuid);
 	}
 
 	public InnoBaseSign<UUID> getSigner(String uuid) throws ExecutionException {
@@ -57,6 +60,7 @@ public class InnoSignerFactory {
 
 	public InnoBaseSign<UUID> createSigner() throws Exception {
 		PdfBoxPdfDocumentType myDocumentType = new PdfBoxPdfDocumentType();
+		//ITextPdfDocumentType myDocumentType = new ITextPdfDocumentType();
 		myDocumentType.setPdfRender(new PdfBoxRenderer());
 		LocalPdfSignatureManager sigManager = new LocalPdfSignatureManager(getStore(), aliasPwd, alias);
 		InnoBaseSign<UUID> ret = new InnoBaseSign<UUID>(dataLayer, sigManager, myDocumentType);

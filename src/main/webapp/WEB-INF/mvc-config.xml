@@ -27,6 +27,7 @@
 		<constructor-arg type="java.lang.String" value="${tempDir}" />
 		<constructor-arg type="boolean" value="true" />
 		<constructor-arg type="boolean" value="true" />
+		<constructor-arg type="int" value="0" />
 	</bean>
 
 	<bean id="signerFactory" name="signerFactory" class="eu.inn.wssign.InnoSignerFactory">

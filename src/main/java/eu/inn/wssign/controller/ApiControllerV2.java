@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -18,15 +17,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 //import org.slf4j.Logger;
 //import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,15 +39,14 @@ import com.lowagie.text.pdf.PdfStamper;
 
 import eu.inn.sign.InnoBaseSign;
 import eu.inn.sign.datalayer.FileObject;
+import eu.inn.sign.pdf.document.PdfAcroFormField;
 import eu.inn.sign.pdf.document.PdfBinding;
 import eu.inn.sign.pdf.document.PdfPageInfo;
 import eu.inn.sign.pdf.render.IPdfRenderedListener;
-import eu.inn.sign.signature.ParsedSignatureField;
 import eu.inn.sign.signature.SignatureField;
 import eu.inn.sign.signature.SignatureParameters;
 import eu.inn.sign.web.util.JsonSerializer;
 import eu.inn.wssign.InnoSignerFactory;
-import eu.inn.wssign.controller.DocumentSignController.ResourceNotFoundException;
 import eu.inn.wssign.controller.utils.AuditLogger;
 
 /**
@@ -101,6 +94,49 @@ public class ApiControllerV2 {
 		JSONObject ret = new JSONObject();
 
 		try {
+		
+//			 BufferedImage image = null;
+//		        byte[] imageByte;
+//		        try {
+//		            
+//		            imageByte = org.bouncycastle.util.encoders.Base64.decode(signatureParameters.getSignImageBase64());
+//		            ByteArrayInputStream bis = new ByteArrayInputStream(imageByte);
+//		            image = ImageIO.read(bis);
+//		            bis.close();
+//		        } catch (Exception e) {
+//		            e.printStackTrace();
+//		        }
+//			
+//			    int imageWidth  = image.getWidth();
+//			    int imageHeight = image.getHeight();
+//
+//			    double scaleX = 2;
+//			    double scaleY =2;
+//			    AffineTransform scaleTransform = AffineTransform.getScaleInstance(scaleX, scaleY);
+//			    AffineTransformOp bilinearScaleOp = new AffineTransformOp(scaleTransform, AffineTransformOp.TYPE_BILINEAR);
+//
+//			    BufferedImage scaeld= bilinearScaleOp.filter(
+//			        image,
+//			        new BufferedImage(imageWidth*2, imageHeight*2, image.getType()));
+//			
+//			
+//			    String imageString = null;
+//		        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+//
+//		        try {
+//		            ImageIO.write(scaeld, "png", bos);
+//		            byte[] imageBytes = bos.toByteArray();
+//
+//		          
+//		            imageString = org.apache.xml.security.utils.Base64.encode(imageBytes);
+//
+//		            bos.close();
+//		        } catch (IOException e) {
+//		            e.printStackTrace();
+//		        }
+		        
+			  //  signatureParameters.setSignImageBase64(imageString);
+			    
 			signerFactory.getSigner(uuid).sign(signatureParameters, null);
 			ret.put("uuid", uuid.toString());
 		} catch (Exception e) {
@@ -109,6 +145,40 @@ public class ApiControllerV2 {
 		}
 		Date d2 = new Date();
 		timing.debug("signFEA "+uuid+" : "+(d2.getTime()-d1.getTime())+"ms");
+		return ret.toJSONString();
+	}
+	
+	
+	@RequestMapping(value = "/endSign", method = RequestMethod.POST)
+	public @ResponseBody String endSign(@RequestParam String uuid) {
+		Date d1 = new Date();
+		JSONObject ret = new JSONObject();
+		try {
+			signerFactory.getSigner(uuid).endSign();
+			signerFactory.removeSigner(UUID.fromString(uuid));
+			ret.put("result", true);
+		} catch (Exception e) {
+			ret.put("result", false);
+			logger.error("Cannot endSign " + e.getMessage(), e);
+			ret.put("errorMessage", "Cannot endSign " + e.getMessage());
+		}
+		Date d2 = new Date();
+		timing.debug("signFEA "+uuid+" : "+(d2.getTime()-d1.getTime())+"ms");
+		return ret.toJSONString();
+	}
+	
+	@RequestMapping(value = "/invalidateAllDocuments", method = RequestMethod.POST)
+	public @ResponseBody String invalidateAllDocuments(@RequestParam String uuid) {
+		JSONObject ret = new JSONObject();
+		try {
+			signerFactory.getSigner(uuid).endSign();
+			signerFactory.removeSigner(UUID.fromString(uuid));
+			ret.put("result", true);
+		} catch (Exception e) {
+			ret.put("result", false);
+			logger.error("Cannot invalidateAllDocuments: " + e.getMessage(), e);
+			ret.put("errorMessage", "Cannot invalidateAllDocuments: " + e.getMessage());
+		}
 		return ret.toJSONString();
 	}
 
@@ -177,13 +247,14 @@ public class ApiControllerV2 {
 	public @ResponseBody void upload(HttpServletRequest request, HttpServletResponse response) {
 		Date d1 = new Date();
 		JSONObject ret = new JSONObject();
+		UUID generated = null;
 		try {
 			MultipartHttpServletRequest multipartRequest = (MultipartHttpServletRequest) request;
 			MultipartFile fileToSignFile = multipartRequest.getFile(multipartRequest.getFileNames().next());
 			FileObject toStore = new FileObject(fileToSignFile.getBytes(), fileToSignFile.getOriginalFilename());
 			InnoBaseSign<UUID> created = signerFactory.createSigner();
 			created.importDocument(toStore);
-			UUID generated = created.getUuid();
+			generated = created.getUuid();
 			signerFactory.putSigner(created);
 			logger.info("Upload Document uuid: " + generated.toString());
 			ret.put("uuid", generated.toString());
@@ -198,7 +269,7 @@ public class ApiControllerV2 {
 			e.printStackTrace();
 		}
 		Date d2 = new Date();
-		timing.debug("upload : "+(d2.getTime()-d1.getTime())+"ms");
+		timing.debug("upload "+generated+" : "+(d2.getTime()-d1.getTime())+"ms");
 	}
 
 
@@ -243,7 +314,7 @@ public class ApiControllerV2 {
 		JSONObject ret = new JSONObject();
 		try {
 			Collection<SignatureField> sigs = signerFactory.getSigner(uuid)
-					.getSignFields(!skipTextAnalysis, prefix, suffix).values();
+					.getSignFields(!skipTextAnalysis, prefix, suffix,true).values();
 			ret.put("signatures", JsonSerializer.writeSignatureFields(sigs));
 
 		} catch (Exception e) {
@@ -252,6 +323,26 @@ public class ApiControllerV2 {
 		}
 		Date d2 = new Date();
 		timing.debug("getSignatures "+uuid+" : "+(d2.getTime()-d1.getTime())+"ms");
+		return ret.toJSONString().getBytes();
+
+	}
+	
+	@RequestMapping(value = "/getAcroFormList", method = RequestMethod.POST)
+	public @ResponseBody byte[] getAcroFormList(@RequestParam String uuid,
+			@RequestParam(defaultValue = "1") int page) {
+		Date d1 = new Date();
+		JSONObject ret = new JSONObject();
+		try {
+			Collection<PdfAcroFormField> fields = signerFactory.getSigner(uuid)
+					.getAcroFormList(page).values();
+			ret.put("acroFields", JsonSerializer.writeAcroFields(fields));
+
+		} catch (Exception e) {
+			logger.error("Internal Server Error - " + e.getMessage(), e);
+			ret.put("errorMessage", "Cannot get acro fields. " + e.getMessage());
+		}
+		Date d2 = new Date();
+		timing.debug("getAcroFormList "+uuid+" : "+(d2.getTime()-d1.getTime())+"ms");
 		return ret.toJSONString().getBytes();
 
 	}
@@ -290,6 +381,23 @@ public class ApiControllerV2 {
 		}
 		Date d2 = new Date();
 		timing.debug("addSignatureFields "+uuid+" : "+(d2.getTime()-d1.getTime())+"ms");
+		return ret.toJSONString().getBytes();
+	}
+	
+	@RequestMapping(value = "/setAcroFieldList", method = RequestMethod.POST)
+	public @ResponseBody byte[] setAcroFieldList(final @RequestParam String uuid, String acroFields) {
+		Date d1 = new Date();
+		JSONObject ret = new JSONObject();
+		try {
+			List<PdfAcroFormField> fieldToAdd = JsonSerializer.readAcroFields(acroFields);
+			signerFactory.getSigner(uuid).setAcroFormValues(fieldToAdd);
+			ret.put("uuid", uuid);
+		} catch (Exception ex) {
+			logger.error("Internal Server Error - " + ex.getMessage(), ex);
+			ret.put("errorMessage", "Cannot setAcroFieldList. " + ex.getMessage());
+		}
+		Date d2 = new Date();
+		timing.debug("setAcroFieldList "+uuid+" : "+(d2.getTime()-d1.getTime())+"ms");
 		return ret.toJSONString().getBytes();
 	}
 
@@ -398,7 +506,7 @@ public class ApiControllerV2 {
 			final JSONObject pageImage = new JSONObject();
 			InnoBaseSign<UUID> s = signerFactory.getSigner(uuid);
 			final bean b = new bean();
-			s.getPageImage(page, 1, new IPdfRenderedListener() {
+			s.getPageImage(page, 3, new IPdfRenderedListener() {
 				@Override
 				public void onDocumentLoaded(int totalPages, Object[] addictionalData) {
 					// TODO Auto-generated method stub
