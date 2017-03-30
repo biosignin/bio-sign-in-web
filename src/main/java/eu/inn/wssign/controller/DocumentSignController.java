@@ -30,6 +30,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -42,6 +43,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 
+import com.google.gson.Gson;
 import com.lowagie.text.pdf.PdfReader;
 import com.lowagie.text.pdf.PdfStamper;
 
@@ -53,9 +55,12 @@ import eu.inn.sign.pdf.document.PdfPageInfo;
 import eu.inn.sign.pdf.render.IPdfRenderedListener;
 import eu.inn.sign.signature.SignatureField;
 import eu.inn.sign.signature.SignatureParameters;
+import eu.inn.sign.signature.SignatureStructure;
+import eu.inn.sign.signature.SignatureStructure.DocumentStructure;
 import eu.inn.wssign.InnoSignerFactory;
 import eu.inn.wssign.controller.utils.AuditLogger;
 import eu.inn.wssign.controller.utils.PdfUtils;
+import eu.inn.wssign.controller.utils.Utils;
 
 /**
  * Handles requests for the application home page.
@@ -94,6 +99,9 @@ public class DocumentSignController {
 	@Autowired
 	private IDataLayer<UUID> baseDataLayer;
 
+	@Value(value="${signatureStructurePath}")
+	private String signatureStructurePath;
+	
 	@RequestMapping(value = "/getBindingInfo", method = RequestMethod.POST)
 	public @ResponseBody byte[] getBindingInfo(@RequestParam String uuid) {
 		JSONObject ret = new JSONObject();
@@ -108,6 +116,19 @@ public class DocumentSignController {
 			ret.put("errorMessage", "Cannot get binding. " + e.getMessage());
 		}
 		return ret.toJSONString().getBytes();
+
+	}
+	
+	@RequestMapping(value = "/generateQRCode", method = RequestMethod.GET)
+	public @ResponseBody String generateQRCode(@RequestParam String url) {
+		JSONObject ret = new JSONObject();
+		try {
+			ret.put("img", Utils.generateQRCode(url));
+		} catch (Exception e) {
+			logger.error("Internal Server Error - " + e.getMessage(), e);
+			ret.put("errorMessage", "Cannot get binding. " + e.getMessage());
+		}
+		return ret.toJSONString();
 
 	}
 
@@ -507,6 +528,8 @@ public class DocumentSignController {
 					logger.error("Cannot create flat-copy file to output Dir,message:" + e.getMessage());
 				}
 			}
+			if(callbackURL.contains("?"))
+				return "redirect:" + callbackURL + "&uuid=" + docuuid;
 			return "redirect:" + callbackURL + "?uuid=" + docuuid;
 		} else {
 			try {
@@ -534,4 +557,27 @@ public class DocumentSignController {
 
 	}
 
+	
+	@RequestMapping(value = "/generateSignatureStructure", method = RequestMethod.POST)
+	public @ResponseBody String generateSignatureStructure(
+			@RequestParam int docType,
+		    @RequestParam String config) {
+		JSONObject ret = new JSONObject();
+		try {
+			Gson gson = new Gson();
+			String actualContent = FileUtils.readFileToString(new File(signatureStructurePath));
+			SignatureStructure struct =gson.fromJson(actualContent, SignatureStructure.class);
+			DocumentStructure doc = gson.fromJson(config, DocumentStructure.class);
+			doc.setIdDocumentType(docType);
+			if(struct.getDocuments() ==null)
+				struct.setDocuments(new ArrayList<SignatureStructure.DocumentStructure>());
+			struct.getDocuments().add(doc);
+			actualContent = gson.toJson(struct);
+			FileUtils.writeStringToFile(new File(signatureStructurePath), actualContent);
+			
+		} catch (Exception e) {
+			ret.put("errorMessage", e.getMessage());
+		}
+		return ret.toJSONString();
+	}
 }

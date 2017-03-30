@@ -570,7 +570,7 @@ body {
 						{
 							imgB64 : data.imageb64,
 							hasNewSignature : false,
-							totalPages:viewModel.totalPages(),
+							totalPages:totalPagesPDFJS,
 							pointWidth:data.width,
 							pointHeight:data.height,
 							
@@ -1654,6 +1654,7 @@ body {
 
 		startApplet();
 		createSmartphoneDialog();
+		createSignatureStructureDialog();
 		//$($("#btnSign")[0].parentNode).addClass("current");
 
 		//$("#wizard").tabs();
@@ -1973,6 +1974,7 @@ body {
 	}
 	var pages = [];
 	var pagesWithSignature = [];
+	var totalPagesPDFJS=0;
 	function startPdfRendering(pdfUrl, callback) {
 		PDFJS.disableWorker = false; // due to CORS
 
@@ -1986,7 +1988,7 @@ body {
 		PDFJS.getDocument("getFileBytes?uuid=" + pdfUrl, null, null,
 				getDocumentProgress).then(function(pdf) {
 			//$("#visibilityText").hide();
-			var totalPages = pdf.numPages;
+			totalPagesPDFJS = pdf.numPages;
 
 			// init parsing of first page
 			if (currentPage <= pdf.numPages)
@@ -2014,13 +2016,13 @@ body {
 					page.render(renderContext).then(function() {
 
 						// store compressed image data in array
-						pages.push({
+						page[currentPage-1]={
 							imgB64 : canvas.toDataURL().split('base64,')[1],
-							totalPages : totalPages,
+							totalPages : totalPagesPDFJS,
 							pointWidth : viewport.width / 2,
 							pointHeight : viewport.height / 2,
 							hasNewSignature : false
-						});
+						};
 						viewModel.totalPages(pages.length);
 						if (currentPage == 1 && callback) {
 							callback();
@@ -2080,7 +2082,21 @@ body {
 					width : '830px',
 					modal : true,
 					open : function(event, ui) {
-						$("#smartUrl").val('bsi://biosignin.org?'+uuid);
+						$("#smartUrl").val('bsi://biosignin.org?uuid='+uuid);
+						$.ajax({
+							dataType : 'json',
+							type : "GET",
+							url : 'generateQRCode',
+							data : {
+								url : 'http://biosignin.org?uuid='+uuid
+							},
+							success : function(data) {
+
+								$("#imgqrcode").attr("src","data:image/png;base64, "+data.img);
+							}
+
+						});
+						
 					},
 					buttons : {
 						'<spring:message code="label.inviaUrlViaMail" text="Invia email" />' : function() {
@@ -2092,6 +2108,86 @@ body {
 					
 				
 				});
+	}
+	
+	
+	function createSignatureStructureDialog()
+	{
+		
+		  
+		  $("#signaturestructure-dialog")
+			.dialog(
+					{
+						resizable: false,
+						draggable: false,
+						autoOpen : false,
+						minHeight : '300px',
+						width : '400px',
+						modal : true,
+						open : function(event, ui) {
+							$("#idDocumentType").val("");
+							$("#numCampiFirmaInseriti").text(viewModel.signatureApplied().length);
+							if(viewModel.signatureApplied().length==0)
+								{
+									alert("Inserire almeno un campo di firma");
+									$("#signaturestructure-dialog").dialog("close");
+								}
+						},
+						buttons : {
+							'Salva' : function() {
+								if( $("#idDocumentType").val()=="")
+								{
+									alert("Inserire il campo Id Tipo Documento");
+									return;
+								}
+								var ret={
+										idDocumentType:0,
+										fields : new Array()
+									};
+									var signatures = viewModel.signatureApplied();
+									for(var i=0;i<signatures.length;i++)
+									{
+										var sig = signatures[i];
+										if(sig.signed)
+											continue;
+										var field = {
+											page:sig.page,
+											left:sig.left(),
+											top:sig.top(),
+											height:sig.height(),
+											width:sig.width(),
+											pageWidth:sig.pageWidth,
+											pageHeight:sig.pageHeight
+										};
+										ret.fields.push(field);
+									}
+							
+								$.ajax({
+									dataType : 'json',
+									type : "POST",
+									url : 'generateSignatureStructure',
+									data : {
+										config :JSON.stringify(ret),
+										docType: $("#idDocumentType").val()
+									},
+									success : function(data) {
+										if(data.errorMessage!=undefined)
+											alert(data.errorMessage);
+										else
+											alert("Struttura salvata con successo!");
+									}
+
+								});
+								$("#signaturestructure-dialog").dialog("close");
+							}
+						
+						}
+						
+					
+					}); 
+		  
+		  
+		  
 	}
 </script>
 
@@ -2212,6 +2308,14 @@ body {
 													onmouseover="this.src='../Images/sendToSmartphonHover.png'"
 													onmouseout="this.src='../Images/sendToSmartphon.png'"
 													onclick='$("#smartphone-dialog").dialog("open");' /> 
+
+												</td>
+												<td style="width: 40px"><img style=""
+													title='Esporta campi di firma' width="40px" height="40px"
+													src="../Images/exportSigStruct.png"
+													onmouseover="this.src='../Images/exportSigStructHover.png'"
+													onmouseout="this.src='../Images/exportSigStruct.png'"
+													onclick='$("#signaturestructure-dialog").dialog("open");' /> 
 
 												</td>
 											</tr>
@@ -2368,12 +2472,22 @@ body {
 		<div id="tabletManagerPanel"></div>
 		<c:import url="signFormFD.jsp"></c:import>
 
-<!-- 		 <pre data-bind="text: 'DEBUG: \r\n'+ko.toJSON($root, null, 2)" style="float: left"></pre> -->
+<!--  		 <pre data-bind="text: 'DEBUG: \r\n'+ko.toJSON($root, null, 2)" style="float: left"></pre>  -->
 	</div>
 	<c:import url="loading.jsp"></c:import>
 	<div id="smartphone-dialog" align="center">
 		Smartphone URL
 		<input type="text" id="smartUrl" style="width: 500px">
+		<br>
+		<img id ="imgqrcode" src="">
 	</div>
+	<div id="signaturestructure-dialog" align="center">
+		Id Tipo Documento
+		<input type="number" id="idDocumentType" style="width: 100px"><br>
+		Numero campi di firma inseriti: <label id="numCampiFirmaInseriti"></label>
+		<br>
+	</div>
+	
+	
 </body>
 </html>
